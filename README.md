@@ -1,6 +1,6 @@
 # 実践プログラミング
 
-[![Node.js CI](https://github.com/k2works/intercept-booster-sample/actions/workflows/node.js.yml/badge.svg)](https://github.com/k2works/intercept-booster-sample/actions/workflows/node.js.yml)
+[![Node.js CI](https://github.com/k2works/pragmatic-programing-exercise-2024/actions/workflows/node.js.yml/badge.svg)](https://github.com/k2works/pragmatic-programing-exercise-2024/actions/workflows/node.js.yml)
 
 ## 概要
 
@@ -22,6 +22,7 @@ npx intercept-booster
 npm install
 npm start
 ```
+
 ## 構成
 
 - [要件](./docs/req.adoc)
