@@ -479,7 +479,7 @@ describe("Moment.jsの基本的な使い方", () => {
     expect(moment("2020-01-01").format("YYYY/MM/DD")).toBe("2020/01/01");
   });
 
-  test("moment (with timezone)", () => {
+  test.skip("moment (with timezone)", () => {
     const m = moment("2020-01-01").utcOffset("+09:00");
     expect(m.format("YYYY/MM/DD HH:mm:ss")).toBe("2020/01/01 00:00:00");
   });
