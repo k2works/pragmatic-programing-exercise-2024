@@ -1,9 +1,32 @@
-import { sum } from "./app.js";
+describe("JavaScriptで学ぶ関数型プログラミング", () => {
+  describe("1章 関数型JavaScriptへのいざない", () => {
+  });
 
-test("adds 1 + 2 to equal 3", () => {
-  const result = sum(1, 2);
-  expect(result).toBe(3);
-});
+  describe("2章 第一級関数と作用的プロググラミング", () => {
+  });
+
+  describe("3章 JavaScriptにおける変数のスコープとクロージャ", () => {
+  });
+
+  describe("4章 高階関数", () => {
+  });
+
+  describe("5章 関数を組み立てる関数", () => {
+  });
+
+  describe("6章 再帰", () => {
+  });
+
+  describe("7章 純粋性、不変性、変更ポリシー", () => {
+  });
+
+  describe("8章 フローベースプログラミング", () => {
+  });
+
+  describe("9章 クラスを使わないプログラミング", () => {
+  });
+
+})
 
 describe("Lodashの基本的な使い方", () => {
   const _ = require("lodash");

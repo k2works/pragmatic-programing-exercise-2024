@@ -1,10 +1,3 @@
-import { sum } from "./app";
-
-test("adds 1 + 2 to equal 3", () => {
-  const result = sum(1, 2);
-  expect(result).toBe(3);
-});
-
 describe("Lodashの基本的な使い方", () => {
   const _ = require("lodash");
 
