@@ -23,6 +23,13 @@ npm install
 npm start
 ```
 
+```bash
+npm install elm@latest-0.19.1
+npm install --save-dev elm-test
+npx elm init
+nxp elm-test init
+```
+
 ## 構成
 
 - [要件](./docs/req.adoc)
@@ -40,3 +47,4 @@ npm start
 - [Asciidoctor](https://asciidoctor.org/)
 - [Browsersync](https://browsersync.io/)
 - [Marp](https://marp.app/)
+- [Elm 公式ガイド](https://guide.elm-lang.jp/)

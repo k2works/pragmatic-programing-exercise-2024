@@ -5,8 +5,13 @@
   "main": "src/index.js",
   "scripts": {
     "start": "npx gulp",
-    "build": "npx gulp build",
-    "test": "npx gulp test",
+    "dev": "npx elm reactor",
+    "build": "npm-run-all build:gulp build:elm",
+    "build:gulp": "npx gulp build",
+    "build:elm": "npx elm make src/Form.elm --output=public/elm.js",
+    "test": "npm-run-all test:gulp test:elm",
+    "test:gulp": "npx gulp test",
+    "test:elm": "npx elm-test",
     "format": "npx gulp format",
     "slides": "npx gulp slides",
     "docs": "npx gulp docs",
@@ -46,6 +51,7 @@
     "browser-sync": "^2.29.0",
     "cpx": "^1.5.0",
     "css-loader": "^6.7.3",
+    "elm-test": "^0.19.1-revision12",
     "gulp": "^4.0.2",
     "gulp-prettier": "^4.0.0",
     "gulp-shell": "^0.8.0",
@@ -74,6 +80,7 @@
     ]
   },
   "dependencies": {
+    "elm": "^0.19.1-5",
     "http-server": "^14.1.1"
   }
 }
