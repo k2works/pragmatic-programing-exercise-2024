@@ -1,98 +1,41 @@
 module Main exposing (..)
 
-import Browser
-import Browser.Navigation as Nav
-import Html exposing (..)
-import Html.Attributes exposing (..)
-import Url
+import Html exposing (Html, div, text)
+import Post exposing (Post, estimatedReadTime, encode, decoder)
+import Json.Decode as D
+import Json.Encode as E
 
-
--- MAIN
-
-
-main : Program () Model Msg
+-- メイン関数
+main : Html msg
 main =
-  Browser.application
-    { init = init
-    , view = view
-    , update = update
-    , subscriptions = subscriptions
-    , onUrlChange = UrlChanged
-    , onUrlRequest = LinkClicked
-    }
+    let
+        -- Postのインスタンスを作成
+        post = { title = "Elm Tutorial", author = "John Doe", content = "Welcome to the Elm tutorial..." }
 
+        -- estimatedReadTime関数を使用して読了時間を推定
+        readTime = Post.estimatedReadTime post
 
+        -- encode関数を使用してPostをJSONにエンコード
+        json = Post.encode post
 
--- MODEL
+        -- JSONを文字列に変換
+        jsonString = E.encode 0 json
 
+        -- JSON文字列をデコードしてPostに変換
+        decodedPost = D.decodeString Post.decoder jsonString
+    in
+    div []
+        [ div [] [ text ("Estimated read time: " ++ String.fromFloat readTime ++ " minutes") ]
+        , div [] [ text ("Encoded JSON: " ++ jsonString) ]
+        , div [] [ text ("Decoded Post: " ++ resultToString decodedPost) ]
+        ]
 
-type alias Model =
-  { key : Nav.Key
-  , url : Url.Url
-  }
+-- Result型の値を文字列に変換する関数
+resultToString : Result D.Error Post -> String
+resultToString result =
+    case result of
+        Ok post ->
+            "Title: " ++ post.title ++ ", Author: " ++ post.author ++ ", Content: " ++ post.content
 
-
-init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
-init flags url key =
-  ( Model key url, Cmd.none )
-
-
-
--- UPDATE
-
-
-type Msg
-  = LinkClicked Browser.UrlRequest
-  | UrlChanged Url.Url
-
-
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
-  case msg of
-    LinkClicked urlRequest ->
-      case urlRequest of
-        Browser.Internal url ->
-          ( model, Nav.pushUrl model.key (Url.toString url) )
-
-        Browser.External href ->
-          ( model, Nav.load href )
-
-    UrlChanged url ->
-      ( { model | url = url }
-      , Cmd.none
-      )
-
-
-
--- SUBSCRIPTIONS
-
-
-subscriptions : Model -> Sub Msg
-subscriptions _ =
-  Sub.none
-
-
-
--- VIEW
-
-
-view : Model -> Browser.Document Msg
-view model =
-  { title = "URL Interceptor"
-  , body =
-      [ text "The current URL is: "
-      , b [] [ text (Url.toString model.url) ]
-      , ul []
-          [ viewLink "/home"
-          , viewLink "/profile"
-          , viewLink "/reviews/the-century-of-the-self"
-          , viewLink "/reviews/public-opinion"
-          , viewLink "/reviews/shah-of-shahs"
-          ]
-      ]
-  }
-
-
-viewLink : String -> Html msg
-viewLink path =
-  li [] [ a [ href path ] [ text path ] ]
+        Err errorMessage ->
+            "Error: " ++ D.errorToString errorMessage
