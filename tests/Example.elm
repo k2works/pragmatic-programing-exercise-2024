@@ -78,21 +78,13 @@ suite2 =
                 (\testName ->
                     test ("関数の定義1 - " ++ testName) <|
                         \() ->
-                            let
-                                greet name =
-                                    "Hello " ++ name ++ "!"
-                            in
-                                Expect.equal ("Hello " ++ testName ++ "!") (greet testName)
+                            Expect.equal ("Hello " ++ testName ++ "!") (greet1 testName)
                 )
                 [ "Alice", "Bob", "John" ]
             )
             , test "関数の定義2" <|
                 \() ->
-                    let
-                        madlib animal adjective =
-                            "The ostentatious " ++ animal ++ " wears " ++ adjective ++ " shorts."
-                    in
-                        Expect.equal "The ostentatious butterfly wears metallic shorts." (madlib "butterfly" "metallic")
+                    Expect.equal "The ostentatious butterfly wears metallic shorts." (madlib "butterfly" "metallic")
             , test "関数の定義3" <|
                 \() ->
                     let
@@ -106,24 +98,10 @@ suite2 =
                     Expect.equal 1 (if True then 1 else 2)
             , test "if式2" <|
                 \() ->
-                    let
-                        greet name = 
-                            if name == "Abraham Lincoln" then
-                                "Greetings Mr. President!"
-                            else
-                                "Hey!"
-                    in
-                    Expect.equal "Hey!" (greet "Tom")
+                    Expect.equal "Hey!" (greet2 "Tom")
             , test "if式3" <|
                 \() ->
-                    let
-                        greet name = 
-                            if name == "Abraham Lincoln" then
-                                "Greetings Mr. President!"
-                            else
-                                "Hey!"
-                    in
-                    Expect.equal "Greetings Mr. President!" (greet "Abraham Lincoln")
+                    Expect.equal "Greetings Mr. President!" (greet2 "Abraham Lincoln")
             ]
         , describe "リスト"
             [ test "リストの長さ" <|
@@ -149,12 +127,6 @@ suite2 =
                         Nothing -> Expect.fail "List was empty"
             , test "リストの末尾要素を除いたリスト" <|
                 \() ->
-                    let
-                        allButLast : List a -> Maybe (List a)
-                        allButLast list =
-                            List.reverse >> List.tail >> Maybe.map List.reverse
-                                |> (\f -> f list)
-                    in
                     case allButLast [1, 2, 3] of
                         Just nums -> Expect.equal [ 1, 2 ] nums
                         Nothing -> Expect.fail "List was empty"
@@ -175,152 +147,110 @@ suite2 =
                     Expect.equal True (List.all (\x -> x > 0) [ 1, 2, 3 ])
             , test "リストの中身1" <|
                 \() ->
-                    let
-                        names = [ "Alice", "Bob", "Chuck" ]
-                    in
                     Expect.equal ["Alice", "Bob", "Chuck"] (names)
             , test "リストの中身2" <|
                 \() ->
-                    let
-                        names = [ "Alice", "Bob", "Chuck" ]
-                    in
                     Expect.equal False (List.isEmpty names)
             , test "リストの中身3" <|
                 \() ->
-                    let
-                        names = [ "Alice", "Bob", "Chuck" ]
-                    in
                     Expect.equal 3 (List.length names)
             , test "リストの中身4" <|
                 \() ->
-                    let
-                        names = [ "Alice", "Bob", "Chuck" ]
-                    in
                     Expect.equal ["Chuck", "Bob", "Alice"] (List.reverse names)
             , test "リストの中身5" <|
                 \() ->
-                    let
-                        nubers = [4,3,2,1]
-                    in
-                    Expect.equal [4,3,2,1] (nubers)
+                    Expect.equal [4,3,2,1] (numbers)
             , test "リストの中身6" <|
                 \() ->
-                    let
-                        nubers = [4,3,2,1]
-                    in
-                    Expect.equal [1,2,3,4] (List.sort nubers)
+                    Expect.equal [1,2,3,4] (List.sort numbers)
             , test "リストの中身7" <|
                 \() ->
-                    let
-                        increment n = 
-                            n + 1
-                        numbers = [4,3,2,1]
-                    in
                     Expect.equal [5,4,3,2] (List.map increment numbers)
             ]
         , describe "タプル"
             [ test "タプル1" <|
                 \() ->
-                    let
-                        isGoodName name = 
-                            if String.length name <= 20 then
-                                (True, "name accepted")
-                            else
-                                (False, "name was too long: please limit it to 20 characters")
-                    in
                     Expect.equal (True, "name accepted") (isGoodName "Alice")
             , test "タプル2" <|
                 \() ->
-                    let
-                        isGoodName name = 
-                            if String.length name <= 20 then
-                                (True, "name accepted")
-                            else
-                                (False, "name was too long: please limit it to 20 characters")
-                    in
                     Expect.equal (False, "name was too long: please limit it to 20 characters") (isGoodName "AliceAliceAliceAliceAlice")
             ]
         , describe "レコード"
             [ test "レコード1" <|
                 \() ->
-                    let
-                        person = { name = "Alice", age = 30 }
-                    in
                     Expect.equal "Alice" (person.name)
             , test "レコード2" <|
                 \() ->
-                    let
-                        person = { name = "Alice", age = 30 }
-                    in
                     Expect.equal 30 (person.age)
             , test "レコード3" <|
                 \() ->
-                    let
-                        person = { name = "Alice", age = 30 }
-                    in
                     Expect.equal { name = "Alice", age = 30 } (person)
             , test "レコード4" <|
                 \() ->
-                    let
-                        person = { name = "Alice", age = 30 }
-                    in
                     Expect.equal { name = "Alice", age = 31 } ({ person | age = 31 })
             , test "レコード5" <|
                 \() ->
-                    let
-                        john = {first = "John"
-                                 ,last = "Hobson"
-                                 ,age = 81
-                                 }
-                    in
                     Expect.equal "Hobson" (john.last)
             , test "レコード6" <|
                 \() ->
-                    let
-                        john = {first = "John"
-                                 ,last = "Hobson"
-                                 ,age = 81
-                                 }
-                    in
                     Expect.equal ["Hobson","Hobson","Hobson"] (List.map .last [john,john,john])
             , test "レコード7" <|
                 \() ->
-                    let
-                        john = {first = "John"
-                                 ,last = "Hobson"
-                                 ,age = 81
-                                 }
-                    in
                     Expect.equal { age = 81, first = "John", last = "Adams" } {john | last="Adams"}
             , test "レコード8" <|
                 \() ->
-                    let
-                        john = {first = "John"
-                                 ,last = "Hobson"
-                                 ,age = 81
-                                 }
-                    in
                     Expect.equal { age = 22, first = "John", last = "Hobson" } {john | age=22}
             , test "レコード9" <|
                 \() ->
-                    let
-                        john = {first = "John"
-                                 ,last = "Hobson"
-                                 ,age = 81
-                                 }
-                        celeberateBirthday pserson =
-                            {pserson | age = pserson.age + 1}
-                    in
                     Expect.equal { age = 82, first = "John", last = "Hobson" } (celeberateBirthday john)
             ]
         ]
 
 
-init : List a -> Maybe (List a)
-init list =
-     case List.reverse list of
-         [] ->
-             Nothing
+greet1 : String -> String
+greet1 name =
+    "Hello " ++ name ++ "!"
 
-         _ :: xs ->
-             Just (List.reverse xs)
+madlib : String -> String -> String
+madlib animal adjective =
+    "The ostentatious " ++ animal ++ " wears " ++ adjective ++ " shorts."
+
+greet2 : String -> String
+greet2 name = 
+    if name == "Abraham Lincoln" then
+        "Greetings Mr. President!"
+    else
+        "Hey!"
+
+allButLast : List a -> Maybe (List a)
+allButLast list =
+    List.reverse >> List.tail >> Maybe.map List.reverse
+        |> (\f -> f list)
+
+isGoodName name = 
+    if String.length name <= 20 then
+        (True, "name accepted")
+    else
+        (False, "name was too long: please limit it to 20 characters")
+
+increment : Int -> Int
+increment n = 
+    n + 1
+
+names : List String
+names = [ "Alice", "Bob", "Chuck" ]
+
+numbers : List Int
+numbers = [4,3,2,1]
+
+person : { name : String, age : Int }
+person = { name = "Alice", age = 30 }
+
+john : { first : String, last : String, age : Int }
+john = {first = "John"
+            ,last = "Hobson"
+            ,age = 81
+            }
+celeberateBirthday : {a | age : Int} -> {a | age : Int}
+celeberateBirthday pserson =
+    {pserson | age = pserson.age + 1}
