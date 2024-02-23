@@ -61,7 +61,18 @@ viewInput t p v toMsg =
 
 viewValidation : Model -> Html Msg
 viewValidation model =
-    if model.password == model.passwordAgain then
-        div [ style "color" "green" ] [ text "OK" ]
-    else
-        div [ style "color" "red"] [ text "Password do not match!" ]
+    let
+        password = model.password
+        lengthValidation = if String.length password >= 8 then "Passes length check" else "Fails length check"
+        upperCaseValidation = if String.any Char.isUpper password then "Contains uppercase" else "Does not contain uppercase"
+        lowerCaseValidation = if String.any Char.isLower password then "Contains lowercase" else "Does not contain lowercase"
+        digitValidation = if String.any Char.isDigit password then "Contains digit" else "Does not contain digit"
+        passwordMatchValidation = if model.password == model.passwordAgain then (div [ style "color" "green" ] [ text "OK" ]) else (div [ style "color" "red"] [ text "Passwords do not match!" ])
+    in
+    div []
+        [ div [] [ text lengthValidation ]
+        , div [] [ text upperCaseValidation ]
+        , div [] [ text lowerCaseValidation ]
+        , div [] [ text digitValidation ]
+        , passwordMatchValidation
+        ]
