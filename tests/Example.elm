@@ -37,7 +37,7 @@ suite =
 
 suite2 : Test
 suite2 =   
-    describe "言語の基礎1"
+    describe "言語の基礎"
         [ describe "値"
             [ test "数値の加算" <|
                 \() ->
@@ -72,13 +72,8 @@ suite2 =
             , test "数値の比較6" <|
                 \() ->
                     Expect.equal False (1 /= 1)
-            ]     
-        ]
-
-suite3 : Test
-suite3 =   
-    describe "言語の基礎2"
-        [ describe "関数"
+            ]
+        , describe "関数"
             (List.map
                 (\testName ->
                     test ("関数の定義1 - " ++ testName) <|
@@ -105,12 +100,7 @@ suite3 =
                             a + b
                     in
                         Expect.equal 3 (add 1 2)
-        ]
-
-suite4 : Test
-suite4 =   
-    describe "言語の基礎3"
-        [ describe "if式"
+        , describe "if式"
             [ test "if式1" <|
                 \() ->
                     Expect.equal 1 (if True then 1 else 2)
@@ -135,12 +125,7 @@ suite4 =
                     in
                     Expect.equal "Greetings Mr. President!" (greet "Abraham Lincoln")
             ]
-        ]
-
-suite5 : Test
-suite5 =   
-    describe "言語の基礎4"
-        [ describe "リスト"
+        , describe "リスト"
             [ test "リストの長さ" <|
                 \() ->
                     Expect.equal 3 (List.length [ 1, 2, 3 ])
@@ -233,13 +218,7 @@ suite5 =
                     in
                     Expect.equal [5,4,3,2] (List.map increment numbers)
             ]
-        ]
-
-
-suite6 : Test
-suite6 =   
-    describe "言語の基礎5"
-        [ describe "タプル"
+        , describe "タプル"
             [ test "タプル1" <|
                 \() ->
                     let
@@ -261,12 +240,7 @@ suite6 =
                     in
                     Expect.equal (False, "name was too long: please limit it to 20 characters") (isGoodName "AliceAliceAliceAliceAlice")
             ]
-        ]
-
-suite7 : Test
-suite7 =   
-    describe "言語の基礎6"
-        [ describe "レコード"
+        , describe "レコード"
             [ test "レコード1" <|
                 \() ->
                     let
@@ -340,6 +314,7 @@ suite7 =
                     Expect.equal { age = 82, first = "John", last = "Hobson" } (celeberateBirthday john)
             ]
         ]
+
 
 init : List a -> Maybe (List a)
 init list =
