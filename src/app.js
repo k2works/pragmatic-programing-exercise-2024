@@ -4,4 +4,3 @@ export class App {
     console.log("App initialized");
   }
 }
-
