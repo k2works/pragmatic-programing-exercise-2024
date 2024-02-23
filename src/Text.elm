@@ -40,4 +40,5 @@ view model =
     div []
       [ input [ placeholder "Text to reverse", value model.content, onInput Change ][]
       , div [] [ text (String.reverse model.content)]
+      , div[] [text ("Content lenght: " ++ String.fromInt(String.length model.content))]
       ]
