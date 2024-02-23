@@ -47,7 +47,4 @@ nxp elm-test init
 - [Asciidoctor](https://asciidoctor.org/)
 - [Browsersync](https://browsersync.io/)
 - [Marp](https://marp.app/)
-
-```
-
-```
+- [Elm 公式ガイド](https://guide.elm-lang.jp/)
