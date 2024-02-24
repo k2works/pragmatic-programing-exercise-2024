@@ -1,32 +1,263 @@
+const exp = require("constants");
+const { freemem } = require("os");
+
 describe("JavaScriptで学ぶ関数型プログラミング", () => {
+  const _ = require("lodash");
+
+  //1章 関数型JavaScriptへのいざない
+
+  function fail(thing) {
+    throw new Error(thing);
+  }
+
+  function warn(thing) {
+    console.log(["警告:", thing].join(" "));
+  }
+
+  function note(thing) {
+    console.log(["情報:", thing].join(" "));
+  }
+
+  function isIndexed(data) {
+    return _.isArray(data) || _.isString(data);
+  }
+
+  function nth(a, index) {
+    if (!_.isNumber(index)) fail("インデックスは数値である必要があります");
+    if (!isIndexed(a))
+      fail("インデックス指定可能ではないデータ型はサポートされていません");
+    if (index < 0 || index > a.length - 1)
+      fail("指定されたインデックスは範囲外です");
+    return a[index];
+  }
+
+  function second(a) {
+    return nth(a, 1);
+  }
+
+  function compareLessThanOrEqual(x, y) {
+    if (x < y) return -1;
+    if (y < x) return 1;
+    return 0;
+  }
+
+  function lessOrEqual(x, y) {
+    return x <= y;
+  }
+
+  function comparator(pred) {
+    return function (x, y) {
+      if (pred(x, y)) return -1;
+      if (pred(y, x)) return 1;
+      return 0;
+    };
+  }
+
+  function lameCSV(str) {
+    return _.reduce(
+      str.split("\n"),
+      (table, row) => {
+        table.push(_.map(row.split(","), (c) => c.trim()));
+        return table;
+      },
+      [],
+    );
+  }
+
+  function selectNames(table) {
+    return _.tail(_.map(table, _.head));
+  }
+
+  function selectAges(table) {
+    return _.tail(_.map(table, second));
+  }
+
+  function selectHairColor(table) {
+    return _.tail(_.map(table, (row) => nth(row, 2)));
+  }
+
+  function existy(x) {
+    return x != null;
+  }
+
+  function truthy(x) {
+    return x !== false && existy(x);
+  }
+
+  function doWhen(cond, action) {
+    if (truthy(cond)) return action();
+    else return undefined;
+  }
+
+  function executeIfHasField(target, name) {
+    return doWhen(existy(target[name]), () => {
+      const result = _.result(target, name);
+      console.log(["結果は", result].join(' '));
+      return result;
+    });
+  }
+
   describe("1章 関数型JavaScriptへのいざない", () => {
+    describe("抽象単位としての関数", () => {
+      test("parseAge", () => {
+        function parseAge(age) {
+          if (!_.isString(age)) fail("引数は文字列である必要があります");
+          let a;
+
+          note("ageを数値に変換しようとしています");
+
+          a = parseInt(age, 10);
+          if (_.isNaN(a)) {
+            warn(["ageを数値に変換できませんでした", age].join(" "));
+            a = 0;
+          }
+          return a;
+        }
+
+        expect(parseAge("frob")).toBe(0);
+        expect(parseAge("42.5")).toBe(42);
+        expect(parseAge("x42.a")).toBe(0);
+      });
+    });
+
+    describe("動作単位としての関数", () => {
+      const letters = ["a", "b", "c"];
+
+      test("naiveNth", () => {
+        function naiveNth(a, index) {
+          return a[index];
+        }
+
+        expect(naiveNth(letters, 1)).toBe("b");
+        expect(naiveNth({}, 1)).toBe(undefined);
+      });
+
+      test("nth", () => {
+        expect(nth("abc", 0)).toBe("a");
+        expect(() => nth({}, 0)).toThrow(
+          "インデックス指定可能ではないデータ型はサポートされていません",
+        );
+        expect(() => nth(letters, 4000)).toThrow(
+          "指定されたインデックスは範囲外です",
+        );
+        expect(() => nth(letters, "aaaaa")).toThrow(
+          "インデックスは数値である必要があります",
+        );
+      });
+
+      test("second", () => {
+        expect(second(["a", "b"])).toBe("b");
+        expect(second("fogus")).toBe("o");
+        expect(() => second({})).toThrow(
+          "インデックス指定可能ではないデータ型はサポートされていません",
+        );
+      });
+
+      test("compareLessThanOrEqual", () => {
+        expect(
+          [2, 3, -1, -6, 0, -108, 42, 10].sort(compareLessThanOrEqual),
+        ).toEqual([-108, -6, -1, 0, 2, 3, 10, 42]);
+      });
+
+      test("lessOrEqual", () => {
+        expect([2, 3, -1, -6, 0, -108, 42, 10].sort(lessOrEqual)).toEqual([
+          2, 3, -1, -6, 0, -108, 42, 10,
+        ]);
+      });
+
+      test("comparator", () => {
+        expect(
+          [2, 3, -1, -6, 0, -108, 42, 10].sort(comparator(lessOrEqual)),
+        ).toEqual([-108, -6, -1, 0, 2, 3, 10, 42]);
+      });
+    });
+
+    describe("抽象としてのデータ", () => {
+      const peopleTable = lameCSV(
+        "name,age,hair\nMerble,35,red\nBob,64,blonde",
+      );
+
+      test("lameCSV", () => {
+        expect(_.tail(peopleTable).sort()).toEqual([
+          ["Bob", "64", "blonde"],
+          ["Merble", "35", "red"],
+        ]);
+      });
+
+      test("lameCSV", () => {
+        expect(lameCSV("name,age,hair\nMerble,35,red\nBob,64,blonde")).toEqual([
+          ["name", "age", "hair"],
+          ["Merble", "35", "red"],
+          ["Bob", "64", "blonde"],
+        ]);
+      });
+
+      test("selectNames", () => {
+        expect(selectNames(peopleTable)).toEqual(["Merble", "Bob"]);
+      });
+
+      test("selectAges", () => {
+        expect(selectAges(peopleTable)).toEqual(["35", "64"]);
+      });
+
+      test("selectHairColor", () => {
+        expect(selectHairColor(peopleTable)).toEqual(["red", "blonde"]);
+      });
+
+      test("mergeReult", () => {
+        expect(
+          _.zip(selectNames(peopleTable), selectAges(peopleTable)),
+        ).toEqual([
+          ["Merble", "35"],
+          ["Bob", "64"],
+        ]);
+      });
+    });
+
+    describe("関数型テイストのJavaScript", () => {
+      test("existy", () => {
+        expect(existy(null)).toBe(false);
+        expect(existy(undefined)).toBe(false);
+        expect(existy({})).toBe(true);
+        expect(existy({}.notHere)).toBe(false);
+        expect(existy((function () {})())).toBe(false);
+        expect(existy(0)).toBe(true);
+        expect(existy(false)).toBe(true);
+        expect([null, undefined,1,2,false].map(existy)).toEqual([false, false, true, true, true]);
+      });
+
+      test("truthy", () => {
+        expect(truthy(false)).toBe(false);
+        expect(truthy(undefined)).toBe(false);
+        expect(truthy(0)).toBe(true);
+        expect(truthy('')).toBe(true);
+        expect([null, undefined,1,2,false].map(truthy)).toEqual([false, false, true, true, false]);
+      });
+
+      test("executeIfHasField", () => {
+        expect(executeIfHasField([1,2,3], "reverse")).toStrictEqual([3,2,1]);
+        expect(executeIfHasField({foo: 42}, "foo")).toStrictEqual(42);
+        expect(executeIfHasField([1,2,3], "notHere")).toBe(undefined);
+      });
+    });
   });
 
-  describe("2章 第一級関数と作用的プロググラミング", () => {
-  });
+  describe("2章 第一級関数と作用的プロググラミング", () => {});
 
-  describe("3章 JavaScriptにおける変数のスコープとクロージャ", () => {
-  });
+  describe("3章 JavaScriptにおける変数のスコープとクロージャ", () => {});
 
-  describe("4章 高階関数", () => {
-  });
+  describe("4章 高階関数", () => {});
 
-  describe("5章 関数を組み立てる関数", () => {
-  });
+  describe("5章 関数を組み立てる関数", () => {});
 
-  describe("6章 再帰", () => {
-  });
+  describe("6章 再帰", () => {});
 
-  describe("7章 純粋性、不変性、変更ポリシー", () => {
-  });
+  describe("7章 純粋性、不変性、変更ポリシー", () => {});
 
-  describe("8章 フローベースプログラミング", () => {
-  });
+  describe("8章 フローベースプログラミング", () => {});
 
-  describe("9章 クラスを使わないプログラミング", () => {
-  });
-
-})
+  describe("9章 クラスを使わないプログラミング", () => {});
+});
 
 describe("Lodashの基本的な使い方", () => {
   const _ = require("lodash");
