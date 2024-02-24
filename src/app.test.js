@@ -1,5 +1,5 @@
 const exp = require("constants");
-const { freemem } = require("os");
+const { decodedTextSpanIntersectsWith } = require("typescript");
 
 describe("JavaScriptで学ぶ関数型プログラミング", () => {
   const _ = require("lodash");
@@ -92,9 +92,39 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
   function executeIfHasField(target, name) {
     return doWhen(existy(target[name]), () => {
       const result = _.result(target, name);
-      console.log(["結果は", result].join(' '));
+      console.log(["結果は", result].join(" "));
       return result;
     });
+  }
+  // 2章 第一級関数と作用的プログラミング
+
+  function cat(/* いくつかの拝借 */) {
+    const head = _.first(arguments);
+    if (existy(head)) {
+      return head.concat.apply(head, _.tail(arguments));
+    } else {
+      return [];
+    }
+  }
+
+  function construct(head, tail) {
+    return cat([head], _.toArray(tail));
+  }
+
+  function mapcat(fun, coll) {
+    return cat.apply(null, _.map(coll, fun));
+  }
+
+  function butLast(coll) {
+    return _.toArray(coll).slice(0, -1);
+  }
+
+  function interpose(inter, coll) {
+    return butLast(
+      mapcat(function (e) {
+        return construct(e, [inter]);
+      }, coll),
+    );
   }
 
   describe("1章 関数型JavaScriptへのいざない", () => {
@@ -223,26 +253,596 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
         expect(existy((function () {})())).toBe(false);
         expect(existy(0)).toBe(true);
         expect(existy(false)).toBe(true);
-        expect([null, undefined,1,2,false].map(existy)).toEqual([false, false, true, true, true]);
+        expect([null, undefined, 1, 2, false].map(existy)).toEqual([
+          false,
+          false,
+          true,
+          true,
+          true,
+        ]);
       });
 
       test("truthy", () => {
         expect(truthy(false)).toBe(false);
         expect(truthy(undefined)).toBe(false);
         expect(truthy(0)).toBe(true);
-        expect(truthy('')).toBe(true);
-        expect([null, undefined,1,2,false].map(truthy)).toEqual([false, false, true, true, false]);
+        expect(truthy("")).toBe(true);
+        expect([null, undefined, 1, 2, false].map(truthy)).toEqual([
+          false,
+          false,
+          true,
+          true,
+          false,
+        ]);
       });
 
       test("executeIfHasField", () => {
-        expect(executeIfHasField([1,2,3], "reverse")).toStrictEqual([3,2,1]);
-        expect(executeIfHasField({foo: 42}, "foo")).toStrictEqual(42);
-        expect(executeIfHasField([1,2,3], "notHere")).toBe(undefined);
+        expect(executeIfHasField([1, 2, 3], "reverse")).toStrictEqual([
+          3, 2, 1,
+        ]);
+        expect(executeIfHasField({ foo: 42 }, "foo")).toStrictEqual(42);
+        expect(executeIfHasField([1, 2, 3], "notHere")).toBe(undefined);
       });
     });
   });
 
-  describe("2章 第一級関数と作用的プロググラミング", () => {});
+  describe("2章 第一級関数と作用的プロググラミング", () => {
+    describe("第一級要素としての関数", () => {
+      _.each(["whiskey", "tango", "foxtrot"], function (word) {
+        console.log(word.charAt(0).toUpperCase() + word.substr(1));
+      });
+
+      describe("JavaScriptにおける複数のプログラミイングパラダイム", () => {});
+
+      describe("命令型プログラミング", () => {
+        /**
+         * + 99から開始
+         * + 現在の数をXとして、次のように歌う
+         *  + X本のビールが残っている
+         *  + X本のビール
+         *  + ひとつ取って、隣に回せ
+         *  + X-1本のビールが残っている
+         * + 最後の数字(x)から1を引いた数でこれを繰り返す
+         * + 1にたどり着いたら、先の歌の最後の行を次の用に歌う
+         *  + もうビールは残っていない
+         */
+
+        let lyrics = [];
+
+        for (let bottles = 99; bottles > 0; bottles--) {
+          lyrics.push(bottles + "本のビールが残っている");
+          lyrics.push(bottles + "本のビール");
+          lyrics.push("ひとつ取って、隣に回せ");
+          if (bottles > 1) {
+            lyrics.push(bottles - 1 + "本のビールが残っている");
+          } else {
+            lyrics.push("もうビールは残っていない");
+          }
+        }
+
+        function lyricSegment(n) {
+          return _.chain([])
+            .push(n + "本のビールが残っている")
+            .push(n + "本のビール")
+            .push("ひとつ取って、隣に回せ")
+            .tap(function (lyrics) {
+              if (n > 1) lyrics.push(n - 1 + "本のビールが残っている");
+              else lyrics.push("もうビールは残っていない");
+            })
+            .value();
+        }
+
+        test("lyrics", () => {
+          expect(lyrics).toHaveLength(396);
+          expect(lyrics[0]).toBe("99本のビールが残っている");
+          expect(lyrics[1]).toBe("99本のビール");
+          expect(lyrics[2]).toBe("ひとつ取って、隣に回せ");
+          expect(lyrics[3]).toBe("98本のビールが残っている");
+          expect(lyrics[395]).toBe("もうビールは残っていない");
+        });
+
+        test("lyricSegment", () => {
+          expect(lyricSegment(99)).toEqual([
+            "99本のビールが残っている",
+            "99本のビール",
+            "ひとつ取って、隣に回せ",
+            "98本のビールが残っている",
+          ]);
+
+          expect(lyricSegment(1)).toEqual([
+            "1本のビールが残っている",
+            "1本のビール",
+            "ひとつ取って、隣に回せ",
+            "もうビールは残っていない",
+          ]);
+
+          expect(lyricSegment(0)).toEqual([
+            "0本のビールが残っている",
+            "0本のビール",
+            "ひとつ取って、隣に回せ",
+            "もうビールは残っていない",
+          ]);
+
+          expect(lyricSegment(-1)).toEqual([
+            "-1本のビールが残っている",
+            "-1本のビール",
+            "ひとつ取って、隣に回せ",
+            "もうビールは残っていない",
+          ]);
+        });
+
+        function song(start, end, lyricGen) {
+          return _.reduce(
+            _.range(start, end, -1),
+            function (acc, n) {
+              return acc.concat(lyricGen(n));
+            },
+            [],
+          );
+        }
+
+        test("song", () => {
+          expect(song(99, 0, lyricSegment)).toHaveLength(396);
+          expect(song(99, 0, lyricSegment)[0]).toBe("99本のビールが残っている");
+          expect(song(99, 0, lyricSegment)[1]).toBe("99本のビール");
+          expect(song(99, 0, lyricSegment)[2]).toBe("ひとつ取って、隣に回せ");
+          expect(song(99, 0, lyricSegment)[3]).toBe("98本のビールが残っている");
+          expect(song(99, 0, lyricSegment)[395]).toBe(
+            "もうビールは残っていない",
+          );
+        });
+      });
+
+      describe("プロトタイプベースのオブジェクト指向プログラミング", () => {
+        const a = {
+          name: "a",
+          fun: function () {
+            return this;
+          },
+        };
+        const bObj = {
+          name: "b",
+          fun: function () {
+            return this;
+          },
+        };
+        const bFunc = bObj.fun;
+
+        test("a.fun", () => {
+          expect(a.fun()).toBe(a);
+        });
+
+        test("bObj.fun", () => {
+          expect(bObj.fun()).toBe(bObj);
+          expect(bFunc()).not.toBe(bObj);
+        });
+      });
+
+      describe("メタプログラミング", () => {
+        function Point2D(x, y) {
+          this._x = x;
+          this._y = y;
+        }
+
+        test("Point2D", () => {
+          const p = new Point2D(0, 1);
+          expect(p._x).toBe(0);
+          expect(p._y).toBe(1);
+        });
+
+        function Point3D(x, y, z) {
+          Point2D.call(this, x, y);
+          this._z = z;
+        }
+
+        test("Point3D", () => {
+          const p = new Point3D(10, -1, 100);
+          expect(p._x).toBe(10);
+          expect(p._y).toBe(-1);
+          expect(p._z).toBe(100);
+        });
+      });
+
+      describe("作用的プログラミング", () => {
+        const nums = [1, 2, 3, 4, 5];
+
+        function doubleAll(array) {
+          return _.map(array, function (n) {
+            return n * 2;
+          });
+        }
+
+        function average(array) {
+          const sum = _.reduce(array, function (a, b) {
+            return a + b;
+          });
+          return sum / _.size(array);
+        }
+
+        function onlyEven(array) {
+          return _.filter(array, function (n) {
+            return n % 2 === 0;
+          });
+        }
+
+        test("doubleAll", () => {
+          expect(doubleAll(nums)).toEqual([2, 4, 6, 8, 10]);
+        });
+
+        test("average", () => {
+          expect(average(nums)).toBe(3);
+        });
+
+        test("onlyEven", () => {
+          expect(onlyEven(nums)).toEqual([2, 4]);
+        });
+      });
+
+      describe("コレクション中心プログラミング", () => {
+        test("_.map", () => {
+          expect(_.map({ a: 1, b: 2 }, _.identity)).toEqual([1, 2]);
+          expect(
+            _.map({ a: 1, b: 2 }, function (v, k) {
+              return [k, v];
+            }),
+          ).toEqual([
+            ["a", 1],
+            ["b", 2],
+          ]);
+          expect(
+            _.map({ a: 1, b: 2 }, function (v, k, coll) {
+              return [k, v, _.keys(coll)];
+            }),
+          ).toEqual([
+            ["a", 1, ["a", "b"]],
+            ["b", 2, ["a", "b"]],
+          ]);
+        });
+      });
+
+      describe("作用的プログラミングのその他の例", () => {
+        describe("reduceRight", () => {
+          const nums = [100, 2, 25];
+
+          function div(x, y) {
+            return x / y;
+          }
+
+          _.reduce(nums, div);
+
+          function allOf(/* 一つ以上の関数 */) {
+            return _.reduceRight(
+              arguments,
+              function (truth, f) {
+                return truth && f();
+              },
+              true,
+            );
+          }
+
+          function anyOf(/* 一つ以上の関数 */) {
+            return _.reduceRight(
+              arguments,
+              function (truth, f) {
+                return truth || f();
+              },
+              false,
+            );
+          }
+
+          function T() {
+            return true;
+          }
+
+          function F() {
+            return false;
+          }
+
+          test("div", () => {
+            expect(_.reduce(nums, div)).toBe(2);
+          });
+
+          test("allOf", () => {
+            expect(allOf()).toBe(true);
+            expect(allOf(T, T)).toBe(true);
+            expect(allOf(T, T, T, T, F)).toBe(false);
+          });
+
+          test("anyOf", () => {
+            expect(anyOf()).toBe(false);
+            expect(anyOf(T, T, F)).toBe(true);
+            expect(anyOf(F, F, F, F)).toBe(false);
+          });
+        });
+
+        describe("find", () => {
+          test("find", () => {
+            expect(_.find(["a", "b", 3, "d"], _.isNumber)).toBe(3);
+          });
+        });
+
+        describe("reject", () => {
+          function complement(pred) {
+            return function () {
+              return !pred.apply(null, _.toArray(arguments));
+            };
+          }
+
+          test("reject", () => {
+            expect(_.reject(["a", "b", 3, "d"], _.isNumber)).toEqual([
+              "a",
+              "b",
+              "d",
+            ]);
+            expect(
+              _.filter(["a", "b", 3, "d"], complement(_.isNumber)),
+            ).toEqual(["a", "b", "d"]);
+          });
+        });
+
+        describe("all", () => {
+          test("all", () => {
+            expect(_.every([1, 2, 3], _.isNumber)).toBe(true);
+            expect(_.every([1, 2, 3, "a"], _.isNumber)).toBe(false);
+          });
+        });
+
+        describe("any", () => {
+          test("any", () => {
+            expect(_.some([1, 2, 3], _.isString)).toBe(false);
+            expect(_.some([1, 2, 3, "a"], _.isString)).toBe(true);
+          });
+        });
+
+        describe("sortBy,groupBy,countBy", () => {
+          const people = [
+            { name: "Rick", age: 30 },
+            { name: "Jaka", age: 24 },
+          ];
+          const albums = [
+            { title: "Sabbath Bloody Sabbath", genre: "Metal" },
+            { title: "Scientist", genre: "Dub" },
+            { title: "Undertow", genre: "Metal" },
+          ];
+
+          test("sortBy", () => {
+            expect(
+              _.sortBy(people, function (p) {
+                return p.age;
+              }),
+            ).toEqual([
+              { name: "Jaka", age: 24 },
+              { name: "Rick", age: 30 },
+            ]);
+          });
+
+          test("groupBy", () => {
+            expect(
+              _.groupBy(albums, function (a) {
+                return a.genre;
+              }),
+            ).toEqual({
+              Dub: [{ title: "Scientist", genre: "Dub" }],
+              Metal: [
+                { title: "Sabbath Bloody Sabbath", genre: "Metal" },
+                { title: "Undertow", genre: "Metal" },
+              ],
+            });
+          });
+
+          test("countBy", () => {
+            expect(
+              _.countBy(albums, function (a) {
+                return a.genre;
+              }),
+            ).toEqual({ Dub: 1, Metal: 2 });
+          });
+        });
+      });
+
+      describe("作用的な関数を定義してみる", () => {
+        test("cat", () => {
+          expect(cat([1, 2, 3], [4, 5], [6, 7, 8])).toEqual([
+            1, 2, 3, 4, 5, 6, 7, 8,
+          ]);
+        });
+
+        test("construct", () => {
+          expect(construct(42, [1, 2, 3])).toEqual([42, 1, 2, 3]);
+        });
+
+        test("mapcat", () => {
+          expect(
+            mapcat(
+              function (e) {
+                return construct(e, [","]);
+              },
+              [1, 2, 3],
+            ),
+          ).toEqual([1, ",", 2, ",", 3, ","]);
+        });
+
+        test("butLast", () => {
+          expect(butLast([1, 2, 3, 4])).toEqual([1, 2, 3]);
+        });
+
+        test("interpose", () => {
+          expect(interpose(",", [1, 2, 3])).toEqual([1, ",", 2, ",", 3]);
+        });
+      });
+    });
+
+    describe("データ思考", () => {
+      const zombie = { name: "Bub", film: "Day of the Dead" };
+      const person = { name: "Romy", token: "j398dij", password: "tigress" };
+      const library = [
+        { title: "SICP", isbn: "0262010771", ed: 1 },
+        { title: "SICP", isbn: "0262510871", ed: 2 },
+        { title: "Joy of Clojure", isbn: "1935182641", ed: 1 },
+      ];
+
+      test("_.keys", () => {
+        expect(_.keys(zombie)).toEqual(["name", "film"]);
+      });
+
+      test("_.values", () => {
+        expect(_.values(zombie)).toEqual(["Bub", "Day of the Dead"]);
+      });
+
+      test("_.pluck", () => {
+        expect(
+          _.map(
+            [
+              { title: "Chthon", authoer: "Anthony" },
+              { title: "Grendel", authoer: "Gardner" },
+              { title: "After Dark" },
+            ],
+            "authoer",
+          ),
+        ).toEqual(["Anthony", "Gardner", undefined]);
+
+        expect(
+          _.map(
+            [
+              { title: "Chthon", author: "Anthony" },
+              { title: "Grendel", author: "Gardner" },
+              { title: "After Dark" },
+            ],
+            function (obj) {
+              return _.defaults(obj, { author: "Unknown" }).author;
+            },
+          ),
+        ).toEqual(["Anthony", "Gardner", "Unknown"]);
+      });
+
+      test("_.pairs", () => {
+        expect(_.toPairs(zombie)).toEqual([
+          ["name", "Bub"],
+          ["film", "Day of the Dead"],
+        ]);
+      });
+
+      test("_.object", () => {
+        expect(
+          _.fromPairs(
+            _.map(_.toPairs(zombie), function (pair) {
+              return [pair[0].toUpperCase(), pair[1]];
+            }),
+          ),
+        ).toEqual({ FILM: "Day of the Dead", NAME: "Bub" });
+      });
+
+      test("_.invert", () => {
+        expect(_.invert(zombie)).toEqual({
+          Bub: "name",
+          "Day of the Dead": "film",
+        });
+      });
+
+      test("_.omit", () => {
+        expect(_.omit(person, "token", "password")).toEqual({ name: "Romy" });
+      });
+
+      test("_.pick", () => {
+        expect(_.pick(person, "token", "password")).toEqual({
+          token: "j398dij",
+          password: "tigress",
+        });
+      });
+
+      test("_.findWhere", () => {
+        expect(_.find(library, { title: "SICP", ed: 2 })).toEqual({
+          title: "SICP",
+          isbn: "0262510871",
+          ed: 2,
+        });
+      });
+
+      test("_.where", () => {
+        expect(_.filter(library, { title: "SICP" })).toEqual([
+          { title: "SICP", isbn: "0262010771", ed: 1 },
+          { title: "SICP", isbn: "0262510871", ed: 2 },
+        ]);
+      });
+
+      describe("「テーブルのような」データ", () => {
+        function project(table, keys) {
+          return _.map(table, function (obj) {
+            return _.pick.apply(null, construct(obj, keys));
+          });
+        }
+
+        function rename(obj, newNames) {
+          return _.reduce(newNames, function(o, nu, old) {
+            if (_.has(obj, old)) {
+              o[nu] = obj[old];
+              return o;    
+            } 
+            else 
+              return 0;
+            },
+            _.omit.apply(null, construct(obj, _.keys(newNames))));
+          }
+
+        function as(table, newNames) {
+          return _.map(table, function(obj) {
+            return rename(obj, newNames);
+          });
+        }
+
+        function restrict(table, pred) {
+          return _.reduce(table, function(newTable, obje) {
+            if (truthy(pred(obje))) return newTable;
+            else return _.without(newTable, obje);
+          }, table);
+        }
+
+        const editionResults = project(library, ["title", "isbn"]);
+        const isbnResults = project(library, ["isbn"]);
+
+        test("project", () => {
+          expect(project(library, ["title", "isbn"])).toEqual(editionResults);
+          expect(project(library, ["isbn"])).toEqual(isbnResults);
+          expect(_.map(isbnResults, "isbn")).toEqual([
+            "0262010771", "0262510871", "1935182641",
+          ]);
+          expect(project(as(library, {ed: "edition"}), ["title", "isbn"])).toEqual(editionResults);
+        });
+
+        test("rename", () => {
+          expect(rename({a: 1, b: 2}, {a: "AAA"})).toEqual({AAA: 1, b: 2});
+        });
+
+        test("as", () => {
+          expect(as(library, {ed: "edition"})).toEqual([
+            {title: "SICP", isbn: "0262010771", edition: 1},
+            {title: "SICP", isbn: "0262510871", edition: 2},
+            {title: "Joy of Clojure", isbn: "1935182641", edition: 1},
+          ]);
+        });
+
+        test("restrict", () => {
+          expect(restrict(library, function (book) {
+            return book.ed > 1;
+          })).toEqual([
+            {title: "SICP", isbn: "0262510871", ed: 2},
+          ]);
+
+          expect(restrict(
+            project(
+              as(library, {ed: "edition"}),
+              ["title", "isbn", "edition"]
+            ), function(book) {
+              return book.edition > 1;
+            }
+          )
+          ).toEqual([
+            {title: "SICP", isbn: "0262510871", edition: 2},
+          ]);
+        });
+      });
+    });
+  });
 
   describe("3章 JavaScriptにおける変数のスコープとクロージャ", () => {});
 
