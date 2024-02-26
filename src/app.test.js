@@ -127,6 +127,13 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
     );
   }
 
+  function average(array) {
+    const sum = _.reduce(array, function (a, b) {
+      return a + b;
+    });
+    return sum / _.size(array);
+  }
+
   describe("1章 関数型JavaScriptへのいざない", () => {
     describe("抽象単位としての関数", () => {
       test("parseAge", () => {
@@ -773,28 +780,33 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
         }
 
         function rename(obj, newNames) {
-          return _.reduce(newNames, function(o, nu, old) {
-            if (_.has(obj, old)) {
-              o[nu] = obj[old];
-              return o;    
-            } 
-            else 
-              return 0;
+          return _.reduce(
+            newNames,
+            function (o, nu, old) {
+              if (_.has(obj, old)) {
+                o[nu] = obj[old];
+                return o;
+              } else return 0;
             },
-            _.omit.apply(null, construct(obj, _.keys(newNames))));
-          }
+            _.omit.apply(null, construct(obj, _.keys(newNames))),
+          );
+        }
 
         function as(table, newNames) {
-          return _.map(table, function(obj) {
+          return _.map(table, function (obj) {
             return rename(obj, newNames);
           });
         }
 
         function restrict(table, pred) {
-          return _.reduce(table, function(newTable, obje) {
-            if (truthy(pred(obje))) return newTable;
-            else return _.without(newTable, obje);
-          }, table);
+          return _.reduce(
+            table,
+            function (newTable, obje) {
+              if (truthy(pred(obje))) return newTable;
+              else return _.without(newTable, obje);
+            },
+            table,
+          );
         }
 
         const editionResults = project(library, ["title", "isbn"]);
@@ -804,47 +816,333 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
           expect(project(library, ["title", "isbn"])).toEqual(editionResults);
           expect(project(library, ["isbn"])).toEqual(isbnResults);
           expect(_.map(isbnResults, "isbn")).toEqual([
-            "0262010771", "0262510871", "1935182641",
+            "0262010771",
+            "0262510871",
+            "1935182641",
           ]);
-          expect(project(as(library, {ed: "edition"}), ["title", "isbn"])).toEqual(editionResults);
+          expect(
+            project(as(library, { ed: "edition" }), ["title", "isbn"]),
+          ).toEqual(editionResults);
         });
 
         test("rename", () => {
-          expect(rename({a: 1, b: 2}, {a: "AAA"})).toEqual({AAA: 1, b: 2});
+          expect(rename({ a: 1, b: 2 }, { a: "AAA" })).toEqual({
+            AAA: 1,
+            b: 2,
+          });
         });
 
         test("as", () => {
-          expect(as(library, {ed: "edition"})).toEqual([
-            {title: "SICP", isbn: "0262010771", edition: 1},
-            {title: "SICP", isbn: "0262510871", edition: 2},
-            {title: "Joy of Clojure", isbn: "1935182641", edition: 1},
+          expect(as(library, { ed: "edition" })).toEqual([
+            { title: "SICP", isbn: "0262010771", edition: 1 },
+            { title: "SICP", isbn: "0262510871", edition: 2 },
+            { title: "Joy of Clojure", isbn: "1935182641", edition: 1 },
           ]);
         });
 
         test("restrict", () => {
-          expect(restrict(library, function (book) {
-            return book.ed > 1;
-          })).toEqual([
-            {title: "SICP", isbn: "0262510871", ed: 2},
-          ]);
+          expect(
+            restrict(library, function (book) {
+              return book.ed > 1;
+            }),
+          ).toEqual([{ title: "SICP", isbn: "0262510871", ed: 2 }]);
 
-          expect(restrict(
-            project(
-              as(library, {ed: "edition"}),
-              ["title", "isbn", "edition"]
-            ), function(book) {
-              return book.edition > 1;
-            }
-          )
-          ).toEqual([
-            {title: "SICP", isbn: "0262510871", edition: 2},
-          ]);
+          expect(
+            restrict(
+              project(as(library, { ed: "edition" }), [
+                "title",
+                "isbn",
+                "edition",
+              ]),
+              function (book) {
+                return book.edition > 1;
+              },
+            ),
+          ).toEqual([{ title: "SICP", isbn: "0262510871", edition: 2 }]);
         });
       });
     });
   });
 
-  describe("3章 JavaScriptにおける変数のスコープとクロージャ", () => {});
+  describe("3章 JavaScriptにおける変数のスコープとクロージャ", () => {
+    describe("静的スコープ", () => {
+      const aVariable = " 外";
+
+      function aFun() {
+        const aVariable = " 内";
+        return _.map([1,2,3], function(e) {
+          const aVariable = " 最内";
+          return [aVariable, e].join(' ');
+      });
+      }
+
+      test("aFun", () => {
+        expect(aFun()).toEqual([" 最内 1", " 最内 2", " 最内 3"]);
+      });
+    });
+
+    describe("動的スコープ", () => {
+      const globals = {};
+
+      function makeBindFun(resolver) {
+        return function(k, v) {
+          const stack = globals[k] || [];
+          globals[k] = resolver(stack,v);
+          return globals;
+        };
+      }
+
+      const stackBinder = makeBindFun(function(stack, v) {
+        stack.push(v);
+        return stack;
+      });
+
+      const stackUnbinder = makeBindFun(function(stack) {
+        stack.pop();
+        return stack;
+      });
+
+      const dynamiclookup = function(k) {
+        const slot = globals[k] || [];
+        return _.last(slot);
+      };
+
+      function f() { return dynamiclookup('a'); };
+      function g() { stackBinder('a', 'g'); return f(); };
+
+      test("dynamiclookup", () => {
+        stackBinder('a', 1);
+        stackBinder('b', 100);
+        expect(dynamiclookup('a')).toBe(1);
+        expect(dynamiclookup('b')).toBe(100);
+        expect(globals).toEqual({ a: [1], b: [100] });
+
+        stackBinder('a', '*');
+        expect(dynamiclookup('a')).toBe('*');
+        expect(globals).toEqual({ a: [1, '*'], b: [100] });
+
+        expect(f()).toBe('*');
+        expect(g()).toBe('g');
+        expect(globals).toEqual({ a: [1, '*', 'g'], b: [100] });
+      });
+    })
+
+    describe("JavaScriptにおける動的スコープ", () => {
+      function globalThis() { return this; }
+
+      test("globalThis", () => {
+        expect(globalThis.call('barnabas')).toBe('barnabas');
+        expect(globalThis.apply('orsulak', [])).toBe('orsulak');
+      });
+
+      const nopeThis = _.bind(globalThis, 'nope');
+
+      test("nopeThis", () => {
+        expect(nopeThis.call('wat')).toBe('nope');
+      });
+
+      const target = { name: '正しい値',
+                       aux: function() { return this.name; },
+                       act: function() { return this.aux(); }};
+
+      _.bindAll(target, 'aux', 'act');
+      test("target", () => {
+        expect(target.act()).toBe('正しい値');
+      });
+
+      describe("関数スコープ", () => {
+        function strangeIdentity(n) {
+          for(var i=0; i<n; i++);
+          return i
+        }
+
+        test("strangeIdentity", () => {
+          expect(strangeIdentity(138)).toBe(138);
+        });
+
+        function strangerIdentity(n) {
+          for(this['i'] = 0; this['i']<n; this['i']++);
+          return this['i'];
+        }
+
+        test("strangerIdentity", () => {
+          expect(strangerIdentity.call({},10000)).toBe(10000);
+        });
+
+        function f() {
+          this['a'] = 200;
+          return this['a'] + this['b'];
+        }
+
+        const globals = {'b': 2};
+
+        test("f", () => {
+          expect(f.call(_.clone(globals))).toBe(202);
+          expect(globals).toEqual({ b: 2 });
+        });
+      });
+
+      describe("クロージャ", () => {
+        describe("クロージャをシミュレート", () => {
+          function whatWasTheLocal() {
+            const CAPTURED = "あ、こんにちは。";
+            return function() {
+              return "ローカル変数：" + CAPTURED;
+            };
+          }
+
+          test("whatWasTheLocal", () => {
+            const reportLocal = whatWasTheLocal();
+            expect(reportLocal()).toBe("ローカル変数：あ、こんにちは。");
+          });
+
+          function createScaleFunction(FACTOR) {
+            return function(v) {
+              return _.map(v, function(n) {
+                return n * FACTOR;
+              });
+            };
+          }
+
+          test("createScaleFunction", () => {
+            const scale10 = createScaleFunction(10);
+            expect(scale10([1,2,3])).toEqual([10,20,30]);
+          });
+
+          function createWeirdScaleFunction(FACTOR) {
+            return function(v) {
+              this['FACTOR'] = FACTOR;
+              const captures = this;
+              return _.map(v, _.bind(function(n) {
+                return (n * this['FACTOR']);
+              }, captures));
+            };
+          }
+
+          test("createWeirdScaleFunction", () => {
+            const scale10 = createWeirdScaleFunction(10);
+            expect(scale10.call({}, [5,6,7])).toEqual([50,60,70]);
+          });
+        });
+
+        describe("自由変数", () => {
+          function makeAdder(CAPTURED) {
+            return function(free) {
+              return free + CAPTURED;
+            };
+          }
+
+          test("makeAdder", () => {
+            const add10 = makeAdder(10);
+            expect(add10(32)).toBe(42);
+            const add1024 = makeAdder(1024);
+            expect(add1024(10)).toBe(1034);
+            expect(add10(98)).toBe(108);
+          });
+
+          function averageDamp(FUN) {
+            return function(n) {
+              return average([n, FUN(n)]);
+            };
+          }
+
+          test("averageDamp", () => {
+            const averageSq = averageDamp(function(n) { return n * n; });
+            expect(averageSq(10)).toBe(55);
+          });
+        });
+
+        describe("シャドウィング", () => {
+          var shadowed = 0;
+          function varShadow() {
+            const shadowed = 4320000;
+            return ["値は", shadowed].join(' ');
+          }
+
+          function argShadow(shadowed) {
+            return ["値は", shadowed].join(' ');
+          }
+
+          test("varShadow", () => {
+            expect(varShadow()).toBe("値は 4320000");
+            expect(argShadow(4320000)).toBe("値は 4320000");
+            expect(argShadow()).toBe("値は ");
+          });
+        });
+
+        describe("クロージャの使用", () => {
+          function complement(PRED) {
+            return function() {
+              return !PRED.apply(null, _.toArray(arguments));
+            };
+          }
+
+          function isEven(n) { return (n%2) === 0; }
+          const isOdd = complement(isEven);
+          //function isEven(n) { return false;}
+          test("complement", () => {
+            expect(isOdd(2)).toBe(false);
+            expect(isOdd(413)).toBe(true);
+          });
+
+          function showObject(OBJ) {
+            return function() {
+              return OBJ;
+            };
+          }
+
+          test("showObject", () => {
+            const o = {a: 42};
+            const showO = showObject(o);
+            expect(showO()).toStrictEqual({a: 42});
+            o.newField = 108;
+            expect(showO()).toStrictEqual({a: 42, newField: 108});
+          });
+
+          const pingpong = (function() {
+            let PRIVATE = 0;
+            return {
+              inc: function(n) {
+                return PRIVATE += n;
+              },
+              dec: function(n) {
+                return PRIVATE -= n;
+              }
+            };
+          })();
+
+          test("pingpong", () => {
+            expect(pingpong.inc(10)).toBe(10);
+            expect(pingpong.dec(7)).toBe(3);
+
+            pingpong.div = function(n) { return PRIVATE / n; }
+            expect(() => pingpong.div(3)).toThrow();
+          });
+        });
+
+        describe("抽象としてのクロージャ", () => {
+          function plucker(FIELD) {
+            return function(obj) {
+              return (obj && obj[FIELD]);
+            };
+          }
+
+          test("plucker", () => {
+            const best = {title: "Infinite Jest", author: "DFW"};
+            const getTitle = plucker('title');
+            expect(getTitle(best)).toBe("Infinite Jest");
+
+            const books = [{title: "Chthon"}, {stars: 5}, {title: "Botchan"}];
+            const third = plucker(2);
+            expect(third(books)).toStrictEqual({title: "Botchan"});
+
+            expect(_.filter(books, getTitle)).toStrictEqual([{title: "Chthon"}, {title: "Botchan"}]);
+          });
+        });
+
+      });
+    });
+  });
 
   describe("4章 高階関数", () => {});
 
