@@ -134,6 +134,28 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
     return sum / _.size(array);
   }
 
+  function plucker(FIELD) {
+    return function(obj) {
+      return (obj && obj[FIELD]);
+    };
+  }
+
+  function repeatedly(times, fun) {
+    return _.map(_.range(times), fun);
+  }
+
+  function makeAdder(CAPTURED) {
+    return function(free) {
+      return free + CAPTURED;
+    };
+  }
+
+  function always(VALUE) {
+    return function() {
+      return VALUE;
+    };
+  };
+
   describe("1章 関数型JavaScriptへのいざない", () => {
     describe("抽象単位としての関数", () => {
       test("parseAge", () => {
@@ -1144,7 +1166,300 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
     });
   });
 
-  describe("4章 高階関数", () => {});
+  describe("4章 高階関数", () => {
+    describe("引数として関数を取る関数", () => {
+      describe("関数を渡すことを考える : max, finder, best", () => {
+        const people = [{name: "Fred", age: 65}, {name: "Lucy", age: 36}];
+
+        test("max", () => {
+          expect(_.max([1,2,3,4,5])).toBe(5);
+          expect(_.max([1,2,3,4.75,4.5])).toBe(4.75);
+          expect(_.max(people, function(p) { return p.age; })).toStrictEqual({name: "Fred", age: 65});
+        });
+
+        function finder(valueFun, bestFun, coll) {
+          return _.reduce(coll, function(best, current) {
+            const bestValue = valueFun(best);
+            const currentValue = valueFun(current);
+            return (bestValue === bestFun(bestValue, currentValue)) ? best : current;
+          });
+        };
+
+        test("finder", () => {
+          expect(finder(_.identity, Math.max, [1,2,3,4,5])).toBe(5);
+          expect(finder(plucker('age'), Math.max, people)).toStrictEqual({name: "Fred", age: 65});
+          expect(finder(plucker('name'), function(x, y) { return (x.charAt(0) === 'L') ? x : y; }, people)).toStrictEqual({name: "Lucy", age: 36});
+        });
+
+        describe("finder関数を少し引き締める", () => {
+          function best(fun, coll) {
+            return _.reduce(coll, function(x, y) {
+              return fun(x, y) ? x : y;
+            });
+          }
+
+          test("best", () => {
+            expect(best(function(x, y) { return x > y; }, [1,2,3,4,5])).toBe(5);
+            expect(best(function(x, y) { return x.age > y.age; }, people)).toStrictEqual({name: "Fred", age: 65});
+          });
+        });
+      });
+
+      describe("関数を渡すことをさらに考える : repeat,repeatedly,iterateUntil", () => {
+        function repeat(times, VALUE) {
+          return _.map(_.range(times), function() { return VALUE; });
+        }
+
+        function repeatedly(times, fun) {
+          return _.map(_.range(times), fun);
+        }
+
+        function iterateUntil(fun, check, init) {
+          const ret = [];
+          let result = fun(init);
+          while (check(result)) {
+            ret.push(result);
+            result = fun(result);
+          }
+          return ret;
+        }
+
+        test("repeat", () => {
+          expect(repeat(4, "Major")).toStrictEqual(["Major", "Major", "Major", "Major"]);
+        });
+
+        describe("値ではなく、関数を使え", () => {
+          test("repeatedly", () => {
+            expect(repeatedly(3, function() { return Math.floor((Math.random()*10)+1); })).toHaveLength(3);
+          });
+        });
+
+        describe("「値ではなく、関数を使え」と言いました", () => {
+          test("iterateUntil", () => {
+            expect(iterateUntil(function(n) { return n + n; }, function(n) { return n <= 1024; }, 1)).toStrictEqual([2,4,8,16,32,64,128,256,512,1024]);
+            expect(repeatedly(10, function(exp) { return Math.pow(2, exp+1); })).toStrictEqual([2,4,8,16,32,64,128,256,512,1024]);
+          });
+        });
+      });
+    });
+
+    describe("他の関数を返す関数", () => {
+      function always(VALUE) {
+        return function() {
+          return VALUE;
+        };
+      };
+
+      test("always", () => {
+        const f = always(function() {});
+        expect(f() === f()).toBe(true);
+        const g = always(function() {});
+        expect(f() === g()).toBe(false);
+        expect(repeatedly(3, always("Odelay"))).toStrictEqual(["Odelay", "Odelay", "Odelay"]);
+      });
+
+      function invoker(NAME, METHOD) {
+        return function(target) {
+          if (!existy(target)) fail("Must provide a target");
+
+          const targetMethod = target[NAME];
+          const args = _.tail(arguments);
+
+          return doWhen((existy(targetMethod) && METHOD === targetMethod), function() {
+            return targetMethod.apply(target, args);
+          });
+        };
+      };
+
+      test("invoker", () => {
+        const rev = invoker('reverse', Array.prototype.reverse);
+        expect(_.map([[1,2,3]], rev)).toStrictEqual([[3,2,1]]);
+      });
+
+      describe("引数を高階関数に確保する", () => {
+        const add100 = makeAdder(100);
+        test("makeAdder", () => {
+          expect(add100(38)).toBe(138);
+        });
+      });
+
+      describe("大義のために変数を確保する", () => {
+        test("uniqueString", () => {
+          function uniqueString(len) {
+            return Math.random().toString(36).substr(2, len);
+          }
+
+          expect(uniqueString(10)).toHaveLength(10);
+        });
+
+        test("uniqueString", () => {
+          function uniqueString(prefix) {
+            return [prefix, new Date().getTime()].join('');
+          }
+
+          expect(uniqueString(10)).toHaveLength(15);
+        });
+
+        function makeUniqueStringFunction(start) {
+          let COUNTER = start;
+
+          return function(prefix) {
+            return [prefix, COUNTER++].join('');
+          };
+        };
+
+        test("makeUniqueStringFunction", () => {
+          const uniqueString = makeUniqueStringFunction(0);
+          expect(uniqueString("dari")).toBe("dari0");
+          expect(uniqueString("dari")).toBe("dari1");
+        });
+
+        const generator = {
+          count: 0,
+          uniqueString: function(prefix) {
+            return [prefix, this.count++].join('');
+          }
+        };
+
+        test("generator", () => {
+          expect(generator.uniqueString("bohr")).toBe("bohr0");
+          expect(generator.uniqueString("bohr")).toBe("bohr1");
+
+          generator.count = "gotcha";
+          expect(generator.uniqueString("bohr")).toBe("bohrNaN");
+
+          generator.uniqueString.call({count: 1337}, "bohr");
+          expect(generator.uniqueString("bohr")).toBe("bohrNaN");
+        });
+
+        const omgenerator = (function(init) {
+          let COUNTER = init;
+
+          return {
+            uniqueString: function(prefix) {
+              return [prefix, COUNTER++].join('');
+            }
+          };
+        })(0);
+
+        test("omgenerator", () => {
+          expect(omgenerator.uniqueString("lichking")).toBe("lichking0");
+          expect(omgenerator.uniqueString("lichking")).toBe("lichking1");
+        });
+      });
+
+      describe("値の変異に注意", () => {
+
+      });
+
+      describe("存在しない状態に対する防御のための関数", () => {
+        const nums = [1,2,3,null,5];
+
+        function fnull(fun /*, defaults */) {
+          const defaults = _.tail(arguments);
+
+          return function(/* args */) {
+            const args = _.map(arguments, function(e, i) {
+              return existy(e) ? e : defaults[i];
+            });
+
+            return fun.apply(null, args);
+          };
+        }
+
+        function defaults(df) {
+          return function(o, k) {
+            const val = fnull(_.identity, df[k]);
+            return o && val(o[k]);
+          };
+        };
+
+        test("fnull", () => {
+          const safeMult = fnull(function(total, n) { return total * n; }, 1, 1);
+          expect(_.reduce(nums, safeMult)).toBe(30);
+        });
+
+
+        test("defaults", () => {
+          function doSomething(config) {
+            const lookup = defaults({critical: 108});
+            return lookup(config, 'critical');
+          }
+
+          expect(doSomething({critical: 9})).toBe(9);
+          expect(doSomething({})).toBe(108);
+        });
+      });
+    });
+
+    describe("すべてを集結：オブジェクトバリデータ", () => {
+      function checker(/* (1つ以上の)検証関数 */) {
+        const validators = _.toArray(arguments);
+        return function(obj) {
+          return _.reduce(validators, function(errs, check) {
+            if (check(obj))
+              return errs;
+            else
+              return _.chain(errs).push(check.message).value();
+          },[]);
+        };
+      }
+
+      function validator(message, fun) {
+        const f = function(/* args */) {
+          return fun.apply(fun, arguments);
+        };
+        f['message'] = message;
+        return f;
+      }
+
+      function aMap(obj) {
+        return _.isObject(obj);
+      }
+
+      function hasKey() {
+        const KEYS = _.toArray(arguments);
+
+        const fun = function(obj) {
+          return _.every(KEYS, function(k) {
+            return _.has(obj, k);
+          });
+        };
+
+        fun.message = cat(["これらのキーが存在する必要があります："], KEYS).join(' ');
+        return fun;
+      }
+
+      test("checker", () => {
+        const alwaysPasses = checker(always(true), always(true));
+        expect(alwaysPasses({})).toStrictEqual([]);
+
+        const fails = always(false);
+        fails.message = "人生における過ち";
+        const alwaysFails = checker(fails);
+        expect(alwaysFails(100)).toStrictEqual(["人生における過ち"]);
+      });
+
+      test("validator", () => {
+        const gonnaFail = checker(validator("ZOMG!", always(false)));
+        expect(gonnaFail(100)).toStrictEqual(["ZOMG!"]);
+      });
+
+      test("aMap", () => {
+        const checkCommand = checker(validator("マップデータである必要があります", aMap));
+        expect(aMap({})).toBe(true);
+        expect(aMap(1)).toBe(false);
+        expect(checkCommand({})).toStrictEqual([]);
+        expect(checkCommand(42)).toStrictEqual(["マップデータである必要があります"]);
+      });
+
+      test("hasKey", () => {
+        const checkCommand = checker(validator("マップデータである必要があります", aMap), hasKey('msg'));
+        expect(checkCommand({msg: "こんにちは"})).toStrictEqual([]);
+        expect(checkCommand(32)).toStrictEqual(["マップデータである必要があります", "これらのキーが存在する必要があります： msg"]);
+      });
+    });
+  });
 
   describe("5章 関数を組み立てる関数", () => {});
 
