@@ -1,10 +1,20 @@
-const exp = require("constants");
-const { decodedTextSpanIntersectsWith } = require("typescript");
 
 describe("JavaScriptで学ぶ関数型プログラミング", () => {
   const _ = require("lodash");
 
   //1章 関数型JavaScriptへのいざない
+  function splat(fun) {
+    return function (array) {
+      return fun.apply(null, array);
+    };
+  }
+
+  function unsplat(fun) {
+    return function () {
+      return fun.call(null, _.toArray(arguments));
+    };
+  }
+
 
   function fail(thing) {
     throw new Error(thing);
@@ -135,7 +145,7 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
   }
 
   function plucker(FIELD) {
-    return function(obj) {
+    return function (obj) {
       return (obj && obj[FIELD]);
     };
   }
@@ -145,18 +155,171 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
   }
 
   function makeAdder(CAPTURED) {
-    return function(free) {
+    return function (free) {
       return free + CAPTURED;
     };
   }
 
   function always(VALUE) {
-    return function() {
+    return function () {
       return VALUE;
     };
   };
 
+  function invoker(NAME, METHOD) {
+    return function (target) {
+      if (!existy(target)) fail("Must provide a target");
+
+      const targetMethod = target[NAME];
+      const args = _.tail(arguments);
+
+      return doWhen((existy(targetMethod) && METHOD === targetMethod), function () {
+        return targetMethod.apply(target, args);
+      });
+    };
+  };
+
+  function curry(fun) {
+    return function (arg) {
+      return fun(arg);
+    };
+  }
+
+  function curry2(fun) {
+    return function (secondArg) {
+      return function (firstArg) {
+        return fun(firstArg, secondArg);
+      };
+    };
+  }
+
+  function songToString(song) {
+    return [song.artist, song.track].join(" - ");
+  }
+
+  function checker(/* (1つ以上の)検証関数 */) {
+    const validators = _.toArray(arguments);
+    return function (obj) {
+      return _.reduce(validators, function (errs, check) {
+        if (check(obj))
+          return errs;
+        else
+          return _.chain(errs).push(check.message).value();
+      }, []);
+    };
+  }
+
+  function validator(message, fun) {
+    const f = function (/* args */) {
+      return fun.apply(fun, arguments);
+    };
+    f['message'] = message;
+    return f;
+  }
+
+  function div(x, y) {
+    return x / y;
+  }
+
+  function complement(pred) {
+    return function () {
+      return !pred.apply(null, _.toArray(arguments));
+    };
+  }
+
+  function partial(fun /*, pargs */) {
+    const pargs = _.tail(arguments);
+
+    return function (/* args */) {
+      const args = cat(pargs, _.toArray(arguments));
+      return fun.apply(fun, args);
+    };
+  }
+
+  function partial1(fun, arg1) {
+    return function (/* args */) {
+      const args = construct(arg1, arguments);
+      return fun.apply(fun, args);
+    };
+  }
+
+  function isEven(n) { return (n % 2) === 0; }
+  function hasKeys() {
+    const KEYS = _.toArray(arguments);
+
+    const fun = function (obj) {
+      return _.every(KEYS, function (k) {
+        return _.has(obj, k);
+      });
+    };
+
+    fun.message = cat(["これらのキーが存在する必要があります："], KEYS).join(' ');
+    return fun;
+  }
+
+  function condition1(/* 1つ以上の検証関数 */) {
+    const validators = _.toArray(arguments);
+
+    return function (fun, arg) {
+      const errors = mapcat(function (isValid) {
+        return isValid(arg) ? [] : [isValid.message];
+      }, validators);
+
+      if (!_.isEmpty(errors)) throw new Error(errors.join(", "));
+
+      return fun(arg);
+    }
+  }
+
+  const greaterThan = curry2(function (lhs, rhs) { return lhs > rhs; });
+  const lessThan = curry2(function (lhs, rhs) { return lhs < rhs; });
+  const zero = validator("0ではいけません", function (n) { return 0 === n; });
+  const number = validator("引数は数値である必要があります", _.isNumber);
+
+  function sqr(n) {
+    if (!number(n)) throw new Error(number.message);
+    if (zero(n)) throw new Error(zero.message);
+    return n * n;
+  }
+
+  const sqrPre = condition1(
+    validator("0ではいけません", complement(zero)),
+    validator("引数は数値である必要があります", _.isNumber)
+  )
+  function uncheckedSqr(n) { return n * n; }
+  const checkedSqr = partial1(sqrPre, uncheckedSqr);
+
   describe("1章 関数型JavaScriptへのいざない", () => {
+    describe("JavaScriptに関する事実", () => {
+      function splat(fun) {
+        return function (array) {
+          return fun.apply(null, array);
+        };
+      }
+
+      function unsplat(fun) {
+        return function () {
+          return fun.call(null, _.toArray(arguments));
+        };
+      }
+
+      test("splat", () => {
+        const addArrayElements = splat(function (x, y) {
+          return x + y;
+        });
+
+        expect(addArrayElements([1, 2])).toBe(3);
+      });
+
+      test("unsplat", () => {
+        const joinElements = unsplat(function (array) {
+          return array.join(" ");
+        });
+
+        expect(joinElements(1, 2)).toBe("1 2");
+      });
+    })
+
     describe("抽象単位としての関数", () => {
       test("parseAge", () => {
         function parseAge(age) {
@@ -279,7 +442,7 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
         expect(existy(undefined)).toBe(false);
         expect(existy({})).toBe(true);
         expect(existy({}.notHere)).toBe(false);
-        expect(existy((function () {})())).toBe(false);
+        expect(existy((function () { })())).toBe(false);
         expect(existy(0)).toBe(true);
         expect(existy(false)).toBe(true);
         expect([null, undefined, 1, 2, false].map(existy)).toEqual([
@@ -321,7 +484,7 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
         console.log(word.charAt(0).toUpperCase() + word.substr(1));
       });
 
-      describe("JavaScriptにおける複数のプログラミイングパラダイム", () => {});
+      describe("JavaScriptにおける複数のプログラミイングパラダイム", () => { });
 
       describe("命令型プログラミング", () => {
         /**
@@ -892,10 +1055,10 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
 
       function aFun() {
         const aVariable = " 内";
-        return _.map([1,2,3], function(e) {
+        return _.map([1, 2, 3], function (e) {
           const aVariable = " 最内";
           return [aVariable, e].join(' ');
-      });
+        });
       }
 
       test("aFun", () => {
@@ -907,24 +1070,24 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
       const globals = {};
 
       function makeBindFun(resolver) {
-        return function(k, v) {
+        return function (k, v) {
           const stack = globals[k] || [];
-          globals[k] = resolver(stack,v);
+          globals[k] = resolver(stack, v);
           return globals;
         };
       }
 
-      const stackBinder = makeBindFun(function(stack, v) {
+      const stackBinder = makeBindFun(function (stack, v) {
         stack.push(v);
         return stack;
       });
 
-      const stackUnbinder = makeBindFun(function(stack) {
+      const stackUnbinder = makeBindFun(function (stack) {
         stack.pop();
         return stack;
       });
 
-      const dynamiclookup = function(k) {
+      const dynamiclookup = function (k) {
         const slot = globals[k] || [];
         return _.last(slot);
       };
@@ -963,9 +1126,11 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
         expect(nopeThis.call('wat')).toBe('nope');
       });
 
-      const target = { name: '正しい値',
-                       aux: function() { return this.name; },
-                       act: function() { return this.aux(); }};
+      const target = {
+        name: '正しい値',
+        aux: function () { return this.name; },
+        act: function () { return this.aux(); }
+      };
 
       _.bindAll(target, 'aux', 'act');
       test("target", () => {
@@ -974,7 +1139,7 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
 
       describe("関数スコープ", () => {
         function strangeIdentity(n) {
-          for(var i=0; i<n; i++);
+          for (var i = 0; i < n; i++);
           return i
         }
 
@@ -983,12 +1148,12 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
         });
 
         function strangerIdentity(n) {
-          for(this['i'] = 0; this['i']<n; this['i']++);
+          for (this['i'] = 0; this['i'] < n; this['i']++);
           return this['i'];
         }
 
         test("strangerIdentity", () => {
-          expect(strangerIdentity.call({},10000)).toBe(10000);
+          expect(strangerIdentity.call({}, 10000)).toBe(10000);
         });
 
         function f() {
@@ -996,7 +1161,7 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
           return this['a'] + this['b'];
         }
 
-        const globals = {'b': 2};
+        const globals = { 'b': 2 };
 
         test("f", () => {
           expect(f.call(_.clone(globals))).toBe(202);
@@ -1008,7 +1173,7 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
         describe("クロージャをシミュレート", () => {
           function whatWasTheLocal() {
             const CAPTURED = "あ、こんにちは。";
-            return function() {
+            return function () {
               return "ローカル変数：" + CAPTURED;
             };
           }
@@ -1019,8 +1184,8 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
           });
 
           function createScaleFunction(FACTOR) {
-            return function(v) {
-              return _.map(v, function(n) {
+            return function (v) {
+              return _.map(v, function (n) {
                 return n * FACTOR;
               });
             };
@@ -1028,14 +1193,14 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
 
           test("createScaleFunction", () => {
             const scale10 = createScaleFunction(10);
-            expect(scale10([1,2,3])).toEqual([10,20,30]);
+            expect(scale10([1, 2, 3])).toEqual([10, 20, 30]);
           });
 
           function createWeirdScaleFunction(FACTOR) {
-            return function(v) {
+            return function (v) {
               this['FACTOR'] = FACTOR;
               const captures = this;
-              return _.map(v, _.bind(function(n) {
+              return _.map(v, _.bind(function (n) {
                 return (n * this['FACTOR']);
               }, captures));
             };
@@ -1043,13 +1208,13 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
 
           test("createWeirdScaleFunction", () => {
             const scale10 = createWeirdScaleFunction(10);
-            expect(scale10.call({}, [5,6,7])).toEqual([50,60,70]);
+            expect(scale10.call({}, [5, 6, 7])).toEqual([50, 60, 70]);
           });
         });
 
         describe("自由変数", () => {
           function makeAdder(CAPTURED) {
-            return function(free) {
+            return function (free) {
               return free + CAPTURED;
             };
           }
@@ -1063,13 +1228,13 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
           });
 
           function averageDamp(FUN) {
-            return function(n) {
+            return function (n) {
               return average([n, FUN(n)]);
             };
           }
 
           test("averageDamp", () => {
-            const averageSq = averageDamp(function(n) { return n * n; });
+            const averageSq = averageDamp(function (n) { return n * n; });
             expect(averageSq(10)).toBe(55);
           });
         });
@@ -1094,12 +1259,12 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
 
         describe("クロージャの使用", () => {
           function complement(PRED) {
-            return function() {
+            return function () {
               return !PRED.apply(null, _.toArray(arguments));
             };
           }
 
-          function isEven(n) { return (n%2) === 0; }
+          function isEven(n) { return (n % 2) === 0; }
           const isOdd = complement(isEven);
           //function isEven(n) { return false;}
           test("complement", () => {
@@ -1108,26 +1273,26 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
           });
 
           function showObject(OBJ) {
-            return function() {
+            return function () {
               return OBJ;
             };
           }
 
           test("showObject", () => {
-            const o = {a: 42};
+            const o = { a: 42 };
             const showO = showObject(o);
-            expect(showO()).toStrictEqual({a: 42});
+            expect(showO()).toStrictEqual({ a: 42 });
             o.newField = 108;
-            expect(showO()).toStrictEqual({a: 42, newField: 108});
+            expect(showO()).toStrictEqual({ a: 42, newField: 108 });
           });
 
-          const pingpong = (function() {
+          const pingpong = (function () {
             let PRIVATE = 0;
             return {
-              inc: function(n) {
+              inc: function (n) {
                 return PRIVATE += n;
               },
-              dec: function(n) {
+              dec: function (n) {
                 return PRIVATE -= n;
               }
             };
@@ -1137,28 +1302,28 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
             expect(pingpong.inc(10)).toBe(10);
             expect(pingpong.dec(7)).toBe(3);
 
-            pingpong.div = function(n) { return PRIVATE / n; }
+            pingpong.div = function (n) { return PRIVATE / n; }
             expect(() => pingpong.div(3)).toThrow();
           });
         });
 
         describe("抽象としてのクロージャ", () => {
           function plucker(FIELD) {
-            return function(obj) {
+            return function (obj) {
               return (obj && obj[FIELD]);
             };
           }
 
           test("plucker", () => {
-            const best = {title: "Infinite Jest", author: "DFW"};
+            const best = { title: "Infinite Jest", author: "DFW" };
             const getTitle = plucker('title');
             expect(getTitle(best)).toBe("Infinite Jest");
 
-            const books = [{title: "Chthon"}, {stars: 5}, {title: "Botchan"}];
+            const books = [{ title: "Chthon" }, { stars: 5 }, { title: "Botchan" }];
             const third = plucker(2);
-            expect(third(books)).toStrictEqual({title: "Botchan"});
+            expect(third(books)).toStrictEqual({ title: "Botchan" });
 
-            expect(_.filter(books, getTitle)).toStrictEqual([{title: "Chthon"}, {title: "Botchan"}]);
+            expect(_.filter(books, getTitle)).toStrictEqual([{ title: "Chthon" }, { title: "Botchan" }]);
           });
         });
 
@@ -1169,16 +1334,16 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
   describe("4章 高階関数", () => {
     describe("引数として関数を取る関数", () => {
       describe("関数を渡すことを考える : max, finder, best", () => {
-        const people = [{name: "Fred", age: 65}, {name: "Lucy", age: 36}];
+        const people = [{ name: "Fred", age: 65 }, { name: "Lucy", age: 36 }];
 
         test("max", () => {
-          expect(_.max([1,2,3,4,5])).toBe(5);
-          expect(_.max([1,2,3,4.75,4.5])).toBe(4.75);
-          expect(_.max(people, function(p) { return p.age; })).toStrictEqual({name: "Fred", age: 65});
+          expect(_.max([1, 2, 3, 4, 5])).toBe(5);
+          expect(_.max([1, 2, 3, 4.75, 4.5])).toBe(4.75);
+          expect(_.max(people, function (p) { return p.age; })).toStrictEqual({ name: "Fred", age: 65 });
         });
 
         function finder(valueFun, bestFun, coll) {
-          return _.reduce(coll, function(best, current) {
+          return _.reduce(coll, function (best, current) {
             const bestValue = valueFun(best);
             const currentValue = valueFun(current);
             return (bestValue === bestFun(bestValue, currentValue)) ? best : current;
@@ -1186,28 +1351,28 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
         };
 
         test("finder", () => {
-          expect(finder(_.identity, Math.max, [1,2,3,4,5])).toBe(5);
-          expect(finder(plucker('age'), Math.max, people)).toStrictEqual({name: "Fred", age: 65});
-          expect(finder(plucker('name'), function(x, y) { return (x.charAt(0) === 'L') ? x : y; }, people)).toStrictEqual({name: "Lucy", age: 36});
+          expect(finder(_.identity, Math.max, [1, 2, 3, 4, 5])).toBe(5);
+          expect(finder(plucker('age'), Math.max, people)).toStrictEqual({ name: "Fred", age: 65 });
+          expect(finder(plucker('name'), function (x, y) { return (x.charAt(0) === 'L') ? x : y; }, people)).toStrictEqual({ name: "Lucy", age: 36 });
         });
 
         describe("finder関数を少し引き締める", () => {
           function best(fun, coll) {
-            return _.reduce(coll, function(x, y) {
+            return _.reduce(coll, function (x, y) {
               return fun(x, y) ? x : y;
             });
           }
 
           test("best", () => {
-            expect(best(function(x, y) { return x > y; }, [1,2,3,4,5])).toBe(5);
-            expect(best(function(x, y) { return x.age > y.age; }, people)).toStrictEqual({name: "Fred", age: 65});
+            expect(best(function (x, y) { return x > y; }, [1, 2, 3, 4, 5])).toBe(5);
+            expect(best(function (x, y) { return x.age > y.age; }, people)).toStrictEqual({ name: "Fred", age: 65 });
           });
         });
       });
 
       describe("関数を渡すことをさらに考える : repeat,repeatedly,iterateUntil", () => {
         function repeat(times, VALUE) {
-          return _.map(_.range(times), function() { return VALUE; });
+          return _.map(_.range(times), function () { return VALUE; });
         }
 
         function repeatedly(times, fun) {
@@ -1230,14 +1395,14 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
 
         describe("値ではなく、関数を使え", () => {
           test("repeatedly", () => {
-            expect(repeatedly(3, function() { return Math.floor((Math.random()*10)+1); })).toHaveLength(3);
+            expect(repeatedly(3, function () { return Math.floor((Math.random() * 10) + 1); })).toHaveLength(3);
           });
         });
 
         describe("「値ではなく、関数を使え」と言いました", () => {
           test("iterateUntil", () => {
-            expect(iterateUntil(function(n) { return n + n; }, function(n) { return n <= 1024; }, 1)).toStrictEqual([2,4,8,16,32,64,128,256,512,1024]);
-            expect(repeatedly(10, function(exp) { return Math.pow(2, exp+1); })).toStrictEqual([2,4,8,16,32,64,128,256,512,1024]);
+            expect(iterateUntil(function (n) { return n + n; }, function (n) { return n <= 1024; }, 1)).toStrictEqual([2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]);
+            expect(repeatedly(10, function (exp) { return Math.pow(2, exp + 1); })).toStrictEqual([2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]);
           });
         });
       });
@@ -1245,27 +1410,27 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
 
     describe("他の関数を返す関数", () => {
       function always(VALUE) {
-        return function() {
+        return function () {
           return VALUE;
         };
       };
 
       test("always", () => {
-        const f = always(function() {});
+        const f = always(function () { });
         expect(f() === f()).toBe(true);
-        const g = always(function() {});
+        const g = always(function () { });
         expect(f() === g()).toBe(false);
         expect(repeatedly(3, always("Odelay"))).toStrictEqual(["Odelay", "Odelay", "Odelay"]);
       });
 
       function invoker(NAME, METHOD) {
-        return function(target) {
+        return function (target) {
           if (!existy(target)) fail("Must provide a target");
 
           const targetMethod = target[NAME];
           const args = _.tail(arguments);
 
-          return doWhen((existy(targetMethod) && METHOD === targetMethod), function() {
+          return doWhen((existy(targetMethod) && METHOD === targetMethod), function () {
             return targetMethod.apply(target, args);
           });
         };
@@ -1273,7 +1438,7 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
 
       test("invoker", () => {
         const rev = invoker('reverse', Array.prototype.reverse);
-        expect(_.map([[1,2,3]], rev)).toStrictEqual([[3,2,1]]);
+        expect(_.map([[1, 2, 3]], rev)).toStrictEqual([[3, 2, 1]]);
       });
 
       describe("引数を高階関数に確保する", () => {
@@ -1303,7 +1468,7 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
         function makeUniqueStringFunction(start) {
           let COUNTER = start;
 
-          return function(prefix) {
+          return function (prefix) {
             return [prefix, COUNTER++].join('');
           };
         };
@@ -1316,7 +1481,7 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
 
         const generator = {
           count: 0,
-          uniqueString: function(prefix) {
+          uniqueString: function (prefix) {
             return [prefix, this.count++].join('');
           }
         };
@@ -1328,15 +1493,15 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
           generator.count = "gotcha";
           expect(generator.uniqueString("bohr")).toBe("bohrNaN");
 
-          generator.uniqueString.call({count: 1337}, "bohr");
+          generator.uniqueString.call({ count: 1337 }, "bohr");
           expect(generator.uniqueString("bohr")).toBe("bohrNaN");
         });
 
-        const omgenerator = (function(init) {
+        const omgenerator = (function (init) {
           let COUNTER = init;
 
           return {
-            uniqueString: function(prefix) {
+            uniqueString: function (prefix) {
               return [prefix, COUNTER++].join('');
             }
           };
@@ -1353,13 +1518,13 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
       });
 
       describe("存在しない状態に対する防御のための関数", () => {
-        const nums = [1,2,3,null,5];
+        const nums = [1, 2, 3, null, 5];
 
         function fnull(fun /*, defaults */) {
           const defaults = _.tail(arguments);
 
-          return function(/* args */) {
-            const args = _.map(arguments, function(e, i) {
+          return function (/* args */) {
+            const args = _.map(arguments, function (e, i) {
               return existy(e) ? e : defaults[i];
             });
 
@@ -1368,25 +1533,25 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
         }
 
         function defaults(df) {
-          return function(o, k) {
+          return function (o, k) {
             const val = fnull(_.identity, df[k]);
             return o && val(o[k]);
           };
         };
 
         test("fnull", () => {
-          const safeMult = fnull(function(total, n) { return total * n; }, 1, 1);
+          const safeMult = fnull(function (total, n) { return total * n; }, 1, 1);
           expect(_.reduce(nums, safeMult)).toBe(30);
         });
 
 
         test("defaults", () => {
           function doSomething(config) {
-            const lookup = defaults({critical: 108});
+            const lookup = defaults({ critical: 108 });
             return lookup(config, 'critical');
           }
 
-          expect(doSomething({critical: 9})).toBe(9);
+          expect(doSomething({ critical: 9 })).toBe(9);
           expect(doSomething({})).toBe(108);
         });
       });
@@ -1395,18 +1560,18 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
     describe("すべてを集結：オブジェクトバリデータ", () => {
       function checker(/* (1つ以上の)検証関数 */) {
         const validators = _.toArray(arguments);
-        return function(obj) {
-          return _.reduce(validators, function(errs, check) {
+        return function (obj) {
+          return _.reduce(validators, function (errs, check) {
             if (check(obj))
               return errs;
             else
               return _.chain(errs).push(check.message).value();
-          },[]);
+          }, []);
         };
       }
 
       function validator(message, fun) {
-        const f = function(/* args */) {
+        const f = function (/* args */) {
           return fun.apply(fun, arguments);
         };
         f['message'] = message;
@@ -1417,11 +1582,11 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
         return _.isObject(obj);
       }
 
-      function hasKey() {
+      function hasKeys() {
         const KEYS = _.toArray(arguments);
 
-        const fun = function(obj) {
-          return _.every(KEYS, function(k) {
+        const fun = function (obj) {
+          return _.every(KEYS, function (k) {
             return _.has(obj, k);
           });
         };
@@ -1453,23 +1618,519 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
         expect(checkCommand(42)).toStrictEqual(["マップデータである必要があります"]);
       });
 
-      test("hasKey", () => {
-        const checkCommand = checker(validator("マップデータである必要があります", aMap), hasKey('msg'));
-        expect(checkCommand({msg: "こんにちは"})).toStrictEqual([]);
+      test("hasKeys", () => {
+        const checkCommand = checker(validator("マップデータである必要があります", aMap), hasKeys('msg'));
+        expect(checkCommand({ msg: "こんにちは" })).toStrictEqual([]);
         expect(checkCommand(32)).toStrictEqual(["マップデータである必要があります", "これらのキーが存在する必要があります： msg"]);
       });
     });
   });
 
-  describe("5章 関数を組み立てる関数", () => {});
+  describe("5章 関数を組み立てる関数", () => {
+    describe("関数合成の基礎", () => {
+      function dispatch(/* 任意の数の関数 */) {
+        const funs = _.toArray(arguments);
+        const size = funs.length;
 
-  describe("6章 再帰", () => {});
+        return function (target /*, args */) {
+          let ret;
+          let args = _.last(arguments);
 
-  describe("7章 純粋性、不変性、変更ポリシー", () => {});
+          for (let funIndex = 0; funIndex < size; funIndex++) {
+            ret = funs[funIndex].apply(funs[funIndex], construct(target, args));
+            if (existy(ret)) return ret;
+          }
 
-  describe("8章 フローベースプログラミング", () => {});
+          return ret;
+        };
+      }
 
-  describe("9章 クラスを使わないプログラミング", () => {});
+      const str = dispatch(invoker('toString', Array.prototype.toString), invoker('toString', String.prototype.toString));
+
+      test("dispatch", () => {
+        expect(str('a')).toBe('a');
+        expect(str(_.range(10))).toBe('0,1,2,3,4,5,6,7,8,9');
+      });
+
+      function stringReverse(s) {
+        if (!_.isString(s)) return undefined;
+        return s.split('').reverse().join('');
+      }
+
+      test("stringReverse", () => {
+        expect(stringReverse('abc')).toBe('cba');
+        expect(stringReverse(1)).toBe(undefined);
+      });
+
+      const polyrev = dispatch(invoker('reverse', Array.prototype.reverse), stringReverse);
+
+      test("polyrev", () => {
+        expect(polyrev([1, 2, 3])).toEqual([3, 2, 1]);
+        expect(polyrev('abc')).toBe('cba');
+      });
+
+      const sillyReverse = dispatch(polyrev, always(42));
+
+      test("sillyReverse", () => {
+        expect(sillyReverse([1, 2, 3])).toEqual([3, 2, 1]);
+        expect(sillyReverse('abc')).toBe('cba');
+        expect(sillyReverse(100000)).toBe(42);
+      });
+
+      const alert = function (message) { return "alert: " + message; };
+      const notify = function (message) { return "notify: " + message; };
+      const changeView = function (target) { return "changeView: " + target; };
+      function performCommandHardcoded(command) {
+        let result;
+        switch (command.type) {
+          case 'notify':
+            result = notify(command.message);
+            break;
+          case 'join':
+            result = changeView(command.target);
+            break;
+          default:
+            return alert(command.type);
+        }
+        return result;
+      }
+
+      test("performCommandHardCoded", () => {
+        expect(performCommandHardcoded({ type: 'notify', message: 'Hi new user' })).toBe("notify: Hi new user");
+        expect(performCommandHardcoded({ type: 'join', target: 'foo' })).toBe("changeView: foo");
+        expect(performCommandHardcoded({ type: 'wat' })).toBe("alert: wat");
+      })
+
+      function isa(type, action) {
+        return function (obj) {
+          if (type === obj.type) return action(obj);
+        }
+      }
+
+      const performedCommand = dispatch(
+        isa('notify', function (obj) { return notify(obj.message); }),
+        isa('join', function (obj) { return changeView(obj.target); }),
+        function (obj) { return alert(obj.type); }
+      );
+
+      const shutdown = function (hostname) { return "shutdown: " + hostname; };
+      const performAdminCommand = dispatch(
+        isa('kill', function (obj) { return shutdown(obj.hostname); }),
+        performedCommand
+      );
+
+      test("performAdminCommand", () => {
+        expect(performAdminCommand({ type: 'kill', hostname: 'localhost' })).toBe("shutdown: localhost");
+        expect(performAdminCommand({ type: 'fail' })).toBe("alert: fail");
+        expect(performAdminCommand({ type: 'join', target: 'foo' })).toBe("changeView: foo");
+      });
+
+      const performTrialUserCommand = dispatch(
+        isa('join', function (obj) { return alert("許可されるまで参加できません"); }),
+        performAdminCommand
+      );
+
+      test("performTrialUserCommand", () => {
+        expect(performTrialUserCommand({ type: 'join' })).toBe("alert: 許可されるまで参加できません");
+        expect(performTrialUserCommand({ type: 'notify', message: 'Hi new user' })).toBe("notify: Hi new user");
+      });
+    })
+
+    describe("変異は低レイヤーでの操作", () => {
+    })
+
+    describe("カリー化", () => {
+      function rightAwayInvoker() {
+        const args = _.toArray(arguments);
+        const method = args.shift();
+        const target = args.shift();
+        return method.apply(target, args);
+      }
+
+      test("rightAwayInvoker", () => {
+        expect(rightAwayInvoker(Array.prototype.reverse, [1, 2, 3])).toEqual([3, 2, 1]);
+        expect(invoker('reverse', Array.prototype.reverse)([1, 2, 3])).toEqual([3, 2, 1]);
+      });
+
+      describe("右へカリー化するか、左へカリー化するか", () => {
+        function leftCurryDiv(n) {
+          return function (d) {
+            return n / d;
+          };
+        }
+
+        function rightCurryDiv(d) {
+          return function (n) {
+            return n / d;
+          };
+        }
+
+        test("leftCurryDiv", () => {
+          expect(leftCurryDiv(10)(2)).toBe(5);
+        });
+
+        test("rightCurryDiv", () => {
+          expect(rightCurryDiv(10)(2)).toBe(0.2);
+        });
+      });
+
+      describe("自動的にパラメータをカリー化する", () => {
+        function curry(fun) {
+          return function (arg) {
+            return fun(arg);
+          };
+        }
+
+        test("curry", () => {
+          expect(['11', '11', '11', '11'].map(curry(parseInt))).toStrictEqual([11, 11, 11, 11]);
+        });
+
+        function curry2(fun) {
+          return function (secondArg) {
+            return function (firstArg) {
+              return fun(firstArg, secondArg);
+            };
+          };
+        }
+
+        test("curry2", () => {
+          function div(n, d) { return n / d; }
+          const div10 = curry2(div)(10);
+          expect(div10(50)).toBe(5);
+
+          const parseBinaryString = curry2(parseInt)(2);
+          expect(parseBinaryString('111')).toBe(7);
+          expect(parseBinaryString('10')).toBe(2);
+        });
+      })
+
+      describe("カリー化を利用して新しい関数を生成する", () => {
+        const plays = [{ artist: "Burial", track: "Archangel" },
+        { artist: "Ben Frost", track: "Stomp" },
+        { artist: "Ben Frost", track: "Stomp" },
+        { artist: "Burial", track: "Archangel" },
+        { artist: "Emeralds", track: "Snores" },
+        { artist: "Burial", track: "Archangel" }
+        ];
+
+        _.countBy(plays, function (song) {
+          return [song.artist, song.track].join(" - ");
+        });
+
+        test("_.countBy", () => {
+          expect(_.countBy(plays, function (song) {
+            return [song.artist, song.track].join(" - ");
+          })).toStrictEqual({ "Burial - Archangel": 3, "Ben Frost - Stomp": 2, "Emeralds - Snores": 1 });
+        });
+
+        function songToString(song) {
+          return [song.artist, song.track].join(" - ");
+        }
+
+        const songCount = curry2(_.countBy)(songToString);
+
+        test("songCount", () => {
+          expect(songCount(plays)).toStrictEqual({ "Burial - Archangel": 3, "Ben Frost - Stomp": 2, "Emeralds - Snores": 1 });
+        });
+      })
+
+      describe("３段階のカリー化でHTMLカラーコードビルダーを実装", () => {
+        function uniqSongs(first, middle, last) {
+          return _.uniqWith(last, (a, b) => a.artist === b.artist && a.track === b.track);
+        }
+
+        const curry3 = (fun) => {
+          return function (last) {
+            return function (middle) {
+              return function (first) {
+                return fun(first, middle, last);
+              };
+            };
+          };
+        };
+
+        const songsPlayed = curry3(uniqSongs);
+
+        test("songsPlayed", () => {
+          const plays = [
+            { artist: "Burial", track: "Archangel" },
+            { artist: "Burial", track: "Archangel" },
+            { artist: "Ben Frost", track: "Stomp" },
+            { artist: "Emeralds", track: "Snores" },
+            { artist: "Emeralds", track: "Snores" }
+          ];
+
+          expect(songsPlayed(plays)(false)(songToString)).toStrictEqual(
+            [
+              { artist: "Burial", track: "Archangel" },
+              { artist: "Ben Frost", track: "Stomp" },
+              { artist: "Emeralds", track: "Snores" }
+            ]
+          );
+        });
+
+        const toHex = function (n) {
+          const hex = n.toString(16);
+          return (hex.length < 2) ? [0, hex].join('') : hex;
+        };
+
+        const rgbToHexString = curry3(function (r, g, b) {
+          return ["#", toHex(r), toHex(g), toHex(b)].join('');
+        });
+
+        test("rgbToHexString", () => {
+          expect(rgbToHexString(255)(255)(255)).toBe("#ffffff");
+        });
+
+        const blueGreenish = curry3(rgbToHexString)(255)(200);
+
+        test("blueGreenish", () => {
+          //expect(blueGreenish(0)).toBe("#00c8ff");
+        });
+      })
+
+      describe("「流暢な」APIのためのカリー化", () => {
+        const greaterThan = curry2(function (lhs, rhs) { return lhs > rhs; });
+        const lessThan = curry2(function (lhs, rhs) { return lhs < rhs; });
+
+        const withinRange = checker(
+          validator("10より大きい必要があります", greaterThan(10)),
+          validator("20より小さい必要があります", lessThan(20))
+        );
+
+        test("withinRange", () => {
+          expect(withinRange(15)).toStrictEqual([]);
+          expect(withinRange(1)).toStrictEqual(["10より大きい必要があります"]);
+          expect(withinRange(100)).toStrictEqual(["20より小さい必要があります"]);
+        });
+      });
+
+      describe("JavaScriptのおけるカリー化のデメリット", () => { })
+
+    })
+
+    describe("部分適用", () => {
+      function divPart(n) {
+        return function (d) {
+          return n / d;
+        };
+      }
+
+      test("divPart", () => {
+        const over10Part = divPart(10);
+        expect(over10Part(2)).toBe(5);
+      });
+
+      describe("１つ・２つの既知の引数を部分適用", () => {
+        function partial1(fun, arg1) {
+          return function (/* args */) {
+            const args = construct(arg1, arguments);
+            return fun.apply(fun, args);
+          };
+        }
+
+        test("partial1", () => {
+          const over10Part = partial1(div, 10);
+          expect(over10Part(2)).toBe(5);
+        });
+
+        function partial2(fun /*, pargs */) {
+          const pargs = _.tail(arguments);
+
+          return function (/* args */) {
+            const args = cat(pargs, _.toArray(arguments));
+            return fun.apply(fun, args);
+          };
+        }
+
+        test("partial2", () => {
+          const div10By2 = partial2(div, 10, 2);
+          expect(div10By2()).toBe(5);
+        });
+      })
+
+      describe("任意の数の引数を部分適用", () => {
+        function partial(fun /*, pargs */) {
+          const pargs = _.tail(arguments);
+
+          return function (/* args */) {
+            const args = cat(pargs, _.toArray(arguments));
+            return fun.apply(fun, args);
+          };
+        }
+
+        test("partial", () => {
+          const over10Part = partial(div, 10);
+          expect(over10Part(2)).toBe(5);
+          const div10By2By4By5000Partial = partial(div, 10, 2, 4, 5000);
+          expect(div10By2By4By5000Partial()).toBe(5);
+        });
+      });
+
+      describe("部分適用の実用例:事前条件", () => {
+        const zero = validator("0ではいけません", function (n) { return 0 === n; });
+        const number = validator("引数は数値である必要があります", _.isNumber);
+
+        function sqr(n) {
+          if (!number(n)) throw new Error(number.message);
+          if (zero(n)) throw new Error(zero.message);
+          return n * n;
+        }
+
+        test("sqr", () => {
+          expect(sqr(10)).toBe(100);
+          expect(() => sqr(0)).toThrow("0ではいけません");
+          expect(() => sqr('')).toThrow("引数は数値である必要があります");
+        });
+
+        function condition1(/* 1つ以上の検証関数 */) {
+          const validators = _.toArray(arguments);
+
+          return function (fun, arg) {
+            const errors = mapcat(function (isValid) {
+              return isValid(arg) ? [] : [isValid.message];
+            }, validators);
+
+            if (!_.isEmpty(errors)) throw new Error(errors.join(", "));
+
+            return fun(arg);
+          }
+        }
+
+        const sqrPre = condition1(
+          validator("0ではいけません", complement(zero)),
+          validator("引数は数値である必要があります", _.isNumber)
+        )
+
+        test("sqrPre", () => {
+          expect(sqrPre(sqr, 10)).toBe(100);
+          expect(() => sqrPre(sqr, 0)).toThrow("0ではいけません");
+          expect(() => sqrPre(sqr, '')).toThrow("引数は数値である必要があります");
+          expect(sqrPre(_.identity, 10)).toBe(10);
+          expect(() => sqrPre(_.identity, '')).toThrow("引数は数値である必要があります");
+          expect(() => sqrPre(_.identity, 0)).toThrow("0ではいけません");
+        });
+
+        function uncheckedSqr(n) { return n * n; }
+
+        test("uncheckedSqr", () => {
+          expect(uncheckedSqr(10)).toBe(100);
+          expect(uncheckedSqr('')).toBe(0);
+          expect(uncheckedSqr(0)).toBe(0);
+        });
+
+        const checkedSqr = partial1(sqrPre, uncheckedSqr);
+
+        test("checkedSqr", () => {
+          expect(checkedSqr(10)).toBe(100);
+          expect(() => checkedSqr('')).toThrow("引数は数値である必要があります");
+          expect(() => checkedSqr(0)).toThrow("0ではいけません");
+        });
+
+        const sillySquare = partial1(
+          condition1(validator("偶数を入力してください", isEven)),
+          checkedSqr
+        );
+
+        test("sillySquare", () => {
+          expect(sillySquare(10)).toBe(100);
+          expect(() => sillySquare(11)).toThrow("偶数を入力してください");
+          expect(() => sillySquare('')).toThrow("引数は数値である必要があります");
+          expect(() => sillySquare(0)).toThrow("0ではいけません");
+        });
+
+        const validateCommand = condition1(
+          validator("マップデータである必要があります", _.isObject),
+          validator("設定オブジェクトは正しいキーを持っている必要があります", hasKeys('msg', 'type'))
+        );
+        const createCommand = partial(validateCommand, _.identity);
+
+        test("createCommand", () => {
+          expect(() => createCommand({})).toThrow("設定オブジェクトは正しいキーを持っている必要があります");
+          expect(() => createCommand(21)).toThrow("設定オブジェクトは正しいキーを持っている必要があります");
+          expect(createCommand({ msg: "", type: "" })).toStrictEqual({ msg: "", type: "" });
+        });
+
+        const createLaunchCommand = partial1(
+          condition1(validator("設定オブジェクトにはcountDownプロパティが必要です", hasKeys('countDown'))),
+          createCommand
+        );
+
+        test("createLaunchCommand", () => {
+          expect(() => createLaunchCommand({})).toThrow("設定オブジェクトにはcountDownプロパティが必要です");
+          expect(() => createLaunchCommand(21)).toThrow("設定オブジェクトにはcountDownプロパティが必要です");
+          expect(createLaunchCommand({ msg: "", type: "", countDown: 10 })).toStrictEqual({ msg: "", type: "", countDown: 10 });
+        });
+      });
+    });
+
+    describe("並べた関数を端から端までcompose関数でつなぎ合わせる", () => {
+      function isntString(str) {
+        return !_.isString(str);
+      }
+
+      test("isntString", () => {
+        expect(isntString(1)).toBe(true);
+        expect(isntString('')).toBe(false);
+      });
+
+      const isntString1 = _.flowRight(function (x) { return !x; }, _.isString);
+
+      test("isntStrings", () => {
+        expect(isntString1(1)).toBe(true);
+        expect(isntString1('')).toBe(false);
+      });
+
+      function not(x) { return !x; }
+
+      const isntString2 = _.flowRight(not, _.isString);
+
+      test("isntString2", () => {
+        expect(isntString2(1)).toBe(true);
+        expect(isntString2('')).toBe(false);
+      });
+
+      const composedMapcat = _.flowRight(splat(cat), _.map);
+
+      test("composedMapcat", () => {
+        expect(composedMapcat([[1, 2], [3, 4], [5]], _.identity)).toStrictEqual([1, 2, 3, 4, 5]);
+      });
+
+      describe("合成を使った事前条件と事後条件", () => {
+        const zero = validator("0ではいけません", function (n) { return 0 === n; });
+        const sqrPost = condition1(
+          validator("結果は数値である必要があります", _.isNumber),
+          validator("結果はゼロでない必要があります", complement(zero)),
+          validator("結果は正である必要があります", greaterThan(0))
+        );
+
+        test("sqrPost", () => {
+          expect(sqrPost(sqr, 10)).toBe(100);
+          expect(() => sqrPost(sqr, 0)).toThrow("結果はゼロでない必要があります");
+          expect(() => sqrPost(sqr, '')).toThrow("結果は数値である必要があります");
+          expect(() => sqrPost(sqr, 0)).toThrow("結果はゼロでない必要があります");
+        });
+
+        const megaCheckedSqr = _.flowRight(partial(sqrPost, _.identity), checkedSqr);
+
+        test("megaCheckedSqr", () => {
+          expect(megaCheckedSqr(10)).toBe(100);
+          expect(() => megaCheckedSqr(0)).toThrow("0ではいけません");
+          expect(() => megaCheckedSqr('')).toThrow("引数は数値である必要があります");
+          expect(() => megaCheckedSqr(NaN)).toThrow("結果は正である必要があります");
+        });
+      })
+    });
+
+  });
+
+  describe("6章 再帰", () => { });
+
+  describe("7章 純粋性、不変性、変更ポリシー", () => { });
+
+  describe("8章 フローベースプログラミング", () => { });
+
+  describe("9章 クラスを使わないプログラミング", () => { });
 });
 
 describe("Lodashの基本的な使い方", () => {
