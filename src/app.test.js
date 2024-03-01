@@ -1,3 +1,4 @@
+const exp = require("constants");
 
 describe("JavaScriptで学ぶ関数型プログラミング", () => {
   const _ = require("lodash");
@@ -288,6 +289,22 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
   )
   function uncheckedSqr(n) { return n * n; }
   const checkedSqr = partial1(sqrPre, uncheckedSqr);
+
+  function nexts(graph, node) {
+    if (_.isEmpty(graph)) return [];
+    const pair = _.head(graph);
+    const from = _.head(pair);
+    const to = second(pair);
+    const more = _.tail(graph);
+
+    if (_.isEqual(node, from)) return construct(to, nexts(more, node));
+    else
+      return nexts(more, node);
+  }
+
+  const rev = invoker('reverse', Array.prototype.reverse);
+
+  const isOdd = complement(isEven);
 
   describe("1章 関数型JavaScriptへのいざない", () => {
     describe("JavaScriptに関する事実", () => {
@@ -2124,7 +2141,434 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
 
   });
 
-  describe("6章 再帰", () => { });
+  describe("6章 再帰", () => {
+    const influences = [
+      ['Lisp', 'Smalltalk'],
+      ['Lisp', 'Scheme'],
+      ['Smalltalk', 'Self'],
+      ['Scheme', 'JavaScript'],
+      ['Scheme', 'Lua'],
+      ['Self', 'Lua'],
+      ['Self', 'JavaScript']
+    ]
+
+    describe("自身を呼ぶ関数", () => {
+      function myLength(ary) {
+        if (_.isEmpty(ary)) return 0;
+        return 1 + myLength(_.tail(ary));
+      }
+
+      test("myLength", () => {
+        expect(myLength(_.range(10))).toBe(10);
+        expect(myLength([])).toBe(0);
+        expect(myLength(_.range(1000))).toBe(1000);
+      });
+
+      function cycle(times, ary) {
+        if (times <= 0) return [];
+        return cat(ary, cycle(times - 1, ary));
+      }
+
+      test("cycle", () => {
+        expect(cycle(2, [1, 2, 3])).toStrictEqual([1, 2, 3, 1, 2, 3]);
+        expect(_.take(cycle(20, [1, 2, 3]), 11)).toStrictEqual([1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2]);
+      });
+
+      function constructPair(pair, rests) {
+        return [construct(_.head(pair), _.head(rests)), construct(second(pair), second(rests))];
+      }
+
+      test("constructPair", () => {
+        expect(constructPair(['a', 1], [[], []])).toStrictEqual([['a'], [1]]);
+        expect(_.zip(['a'], [1])).toStrictEqual([['a', 1]]);
+        expect(_.zip.apply(null, constructPair(['a', 1], [[], []]))).toStrictEqual([['a', 1]]);
+        expect(constructPair(['a', 1],
+          constructPair(['b', 2],
+            constructPair(['c', 3], [[], []])))).toStrictEqual([['a', 'b', 'c'], [1, 2, 3]]);
+      });
+
+      function unzip(pairs) {
+        if (_.isEmpty(pairs)) return [[], []];
+        return constructPair(_.head(pairs), unzip(_.tail(pairs)));
+      }
+
+      test("unzip", () => {
+        expect(unzip([['a', 1], ['b', 2], ['c', 3]])).toStrictEqual([['a', 'b', 'c'], [1, 2, 3]]);
+        expect(unzip(_.zip([1, 2, 3], [4, 5, 6]))).toStrictEqual([[1, 2, 3], [4, 5, 6]]);
+      });
+
+      describe("再帰を使ったグラフ探索", () => {
+        function nexts(graph, node) {
+          if (_.isEmpty(graph)) return [];
+          const pair = _.head(graph);
+          const from = _.head(pair);
+          const to = second(pair);
+          const more = _.tail(graph);
+
+          if (_.isEqual(node, from)) return construct(to, nexts(more, node));
+          else
+            return nexts(more, node);
+        }
+
+        test("nexts", () => {
+          expect(nexts(influences, 'Lisp')).toStrictEqual(['Smalltalk', 'Scheme']);
+          expect(nexts(influences, 'Scheme')).toStrictEqual(['JavaScript', 'Lua']);
+        });
+      })
+
+      describe("記録つき深さ優先自己再帰探索", () => {
+        function depthSearch(graph, nodes, seen) {
+          if (_.isEmpty(nodes)) return rev(seen);
+          const node = _.head(nodes);
+          const more = _.tail(nodes);
+
+          if (_.includes(seen, node)) return depthSearch(graph, more, seen);
+          else
+            return depthSearch(graph, cat(nexts(graph, node), more), construct(node, seen));
+        }
+
+        test("depthSearch", () => {
+          expect(depthSearch(influences, ['Lisp'], [])).toStrictEqual(['Lisp', 'Smalltalk', 'Self', 'Lua', 'JavaScript', 'Scheme']);
+          expect(depthSearch(influences, ['Smalltalk', 'Self'], [])).toStrictEqual(['Smalltalk', 'Self', 'Lua', 'JavaScript']);
+          expect(depthSearch(construct(['Lua', 'Io'], influences), ['Lisp'], [])).toStrictEqual(["Lisp", "Smalltalk", "Self", "Lua", "Io", "JavaScript", "Scheme"]);
+        });
+
+        describe("末尾再帰(自己末尾再帰)", () => {
+          function tcLength(ary, n) {
+            const l = n ? n : 0;
+            if (_.isEmpty(ary)) return l;
+            else return tcLength(_.tail(ary), l + 1);
+          }
+
+          test("tcLength", () => {
+            expect(tcLength(_.range(10))).toBe(10);
+            expect(tcLength([])).toBe(0);
+            expect(tcLength(_.range(1000))).toBe(1000);
+          });
+        });
+      });
+
+      describe("再帰と関数合成：論理積と論理和", () => {
+        function andify(/* preds */) {
+          const preds = _.toArray(arguments);
+
+          return function (/* args */) {
+            const args = _.toArray(arguments);
+            const everything = function (ps, truth) {
+              if (_.isEmpty(ps)) return truth;
+              else
+                return _.every(args, _.head(ps)) && everything(_.tail(ps), truth);
+            };
+
+            return everything(preds, true);
+          };
+        }
+
+        test("andify", () => {
+          const evenNums = andify(_.isNumber, isEven);
+          expect(evenNums(1, 2)).toBe(false);
+          expect(evenNums(2, 4)).toBe(true);
+          expect(evenNums(2, 4, 6, 8)).toBe(true);
+          expect(evenNums(2, 4, 6, 8, 9)).toBe(false);
+        });
+
+        function orify(/* preds */) {
+          const preds = _.toArray(arguments);
+
+          return function (/* args */) {
+            const args = _.toArray(arguments);
+            const something = function (ps, truth) {
+              if (_.isEmpty(ps)) return truth;
+              else
+                return _.some(args, _.head(ps)) || something(_.tail(ps), truth);
+            };
+
+            return something(preds, false);
+          };
+        }
+
+        test("orify", () => {
+          const zeroOrOdd = orify(isOdd, zero);
+          expect(zeroOrOdd(0, 2)).toBe(true);
+          expect(zeroOrOdd(0, 3)).toBe(true);
+          expect(zeroOrOdd(2, 4)).toBe(false);
+        });
+      })
+
+      describe("相互再帰関数(自身を呼ぶ他の関数を呼ぶ関数", () => {
+        function evenSteven(n) {
+          if (n === 0) return true;
+          else return oddJohn(Math.abs(n) - 1);
+        }
+
+        function oddJohn(n) {
+          if (n === 0) return false;
+          else
+            return evenSteven(Math.abs(n) - 1);
+        }
+
+        test("evenSteven", () => {
+          expect(evenSteven(0)).toBe(true);
+          expect(evenSteven(1)).toBe(false);
+          expect(evenSteven(2)).toBe(true);
+          expect(evenSteven(3)).toBe(false);
+        });
+
+        test("oddJohn", () => {
+          expect(oddJohn(0)).toBe(false);
+          expect(oddJohn(1)).toBe(true);
+          expect(oddJohn(2)).toBe(false);
+          expect(oddJohn(3)).toBe(true);
+        });
+
+        function flat(arry) {
+          if (_.isArray(arry)) return _.flatten(arry);
+          else return [arry];
+        }
+
+        test("flat", () => {
+          expect(flat([[1, 2], [3, 4]])).toStrictEqual([1, 2, 3, 4]);
+        });
+      })
+
+      describe("再帰を使った深いコピー", () => {
+        const x = [{ a: [1, 2, 3], b: 42 }, { c: { d: [] } }];
+        const y = _.clone(x);
+
+        test("_.clone", () => {
+          expect(x).toStrictEqual(y);
+          expect(x === y).toBe(false);
+          expect(x[0] === y[0]).toBe(true);
+        });
+
+        function deepClone(obj) {
+          if (!existy(obj) || !_.isObject(obj)) return obj;
+
+          const temp = new obj.constructor();
+          for (let key in obj) {
+            if (obj.hasOwnProperty(key)) temp[key] = deepClone(obj[key]);
+          }
+
+          return temp;
+        }
+
+        test("deepClone", () => {
+          const x = [{ a: [1, 2, 3], b: 42 }, { c: { d: [] } }];
+          const y = deepClone(x);
+
+          expect(x).toStrictEqual(y);
+          expect(x === y).toBe(false);
+          expect(x[0] === y[0]).toBe(false);
+
+          expect(_.isEqual(x, y)).toBe(true);
+          y[1]['c']['d'] = 42;
+          expect(_.isEqual(x, y)).toBe(false);
+        });
+      })
+
+      describe("ネストされた配列を探索する", () => {
+        function visit(mapFun, resultFun, array) {
+          if (_.isArray(array)) return resultFun(_.map(array, mapFun));
+          else return resultFun(array);
+        }
+
+        test("visit", () => {
+          expect(visit(_.identity, _.isNumber, 42)).toBe(true);
+          expect(visit(_.isNumber, _.identity, [1, 2, null, 3])).toStrictEqual([true, true, false, true]);
+          expect(visit(function (n) { return n * 2 }, rev, _.range(10))).toStrictEqual([18, 16, 14, 12, 10, 8, 6, 4, 2, 0]);
+        });
+
+        function postDepth(fun, ary) {
+          return visit(partial1(postDepth, fun), fun, ary);
+        }
+
+        test("postDepth", () => {
+          expect(postDepth(_.identity, [[1, 2], 3, 4])).toStrictEqual([[1, 2], 3, 4]);
+          expect(postDepth(_.identity, [[1, 2], 3, 4])).toStrictEqual([[1, 2], 3, 4]);
+          expect(postDepth(_.identity, [[1, 2], 3, 4])).toStrictEqual([[1, 2], 3, 4]);
+          expect(postDepth(_.identity, influences)).toStrictEqual(influences);
+          expect(postDepth(function (x) {
+            if (x === 'Lisp') return 'LISP';
+            return x;
+          }, influences)).not.toBe(influences);
+        });
+
+        function preDepth(fun, ary) {
+          return fun(visit(partial1(preDepth, fun), _.identity, ary));
+        }
+
+        test("preDepth", () => {
+          expect(preDepth(_.identity, [[1, 2], 3, 4])).toStrictEqual([[1, 2], 3, 4]);
+          expect(preDepth(_.identity, [[1, 2], 3, 4])).toStrictEqual([[1, 2], 3, 4]);
+          expect(preDepth(_.identity, [[1, 2], 3, 4])).toStrictEqual([[1, 2], 3, 4]);
+        });
+
+        function influencedWithStrategy(strategy, lang, graph) {
+          const results = [];
+
+          strategy(function (x) {
+            if (_.isArray(x) && _.first(x) === lang) results.push(second(x));
+            return x;
+          }, graph);
+
+          return results;
+        }
+
+        test("influencedWithStrategy", () => {
+          expect(influencedWithStrategy(postDepth, 'Lisp', influences)).toStrictEqual(['Smalltalk', 'Scheme']);
+          expect(influencedWithStrategy(preDepth, 'Lisp', influences)).toStrictEqual(['Smalltalk', 'Scheme']);
+        });
+
+      });
+    });
+
+    describe("再帰多すぎ！（トランポリンジェネレータ）", () => {
+      function evenOline(n) {
+        if (n === 0) return true;
+        else return partial1(oddOline, Math.abs(n) - 1);
+      }
+
+      function oddOline(n) {
+        if (n === 0) return false;
+        else return partial1(evenOline, Math.abs(n) - 1);
+      }
+
+      test("evenOline", () => {
+        expect(evenOline(0)).toBe(true);
+        expect(evenOline(3)()()()).toBe(false);
+      });
+
+      function trampoline(fun /*, args */) {
+        let result = fun.apply(fun, _.tail(arguments));
+
+        while (_.isFunction(result)) {
+          result = result();
+        }
+
+        return result;
+      }
+
+      test("trampoline", () => {
+        expect(trampoline(evenOline, 100000)).toBe(true);
+        expect(trampoline(oddOline, 100000)).toBe(false);
+      });
+
+      function isEvenSafe(n) {
+        if (n === 0) return true;
+        else return partial1(trampoline, partial1(oddOline, Math.abs(n) - 1));
+      }
+
+      function isOddSafe(n) {
+        if (n === 0) return false;
+        else return partial1(trampoline, partial1(evenOline, Math.abs(n) - 1));
+      }
+
+      test("isEvenSafe", () => {
+        expect(isEvenSafe(20001)()).toBe(false);
+        expect(isOddSafe(20001)()).toBe(true);
+      });
+
+      describe("ジェネレータ(generatore)", () => {
+        function generator(seed, current, step) {
+          return {
+            head: current(seed),
+            tail: function () {
+              console.log("forced");
+              return generator(step(seed), current, step);
+            }
+          };
+        }
+
+        function genHead(gen) { return gen.head; }
+        function genTail(gen) { return gen.tail(); }
+
+        test("generator", () => {
+          const ints = generator(0, _.identity, function (n) { return n + 1; });
+          expect(genHead(ints)).toBe(0);
+          expect(genTail(ints).head).toBe(1);
+          expect(genTail(genTail(ints)).head).toBe(2);
+        })
+
+        function genTake(n, gen) {
+          const doTake = function (g, x, ret) {
+            if (x === 0) return ret;
+            else return partial(doTake, genTail(g), x - 1, cat(ret, genHead(g)));
+          };
+
+          return trampoline(doTake, gen, n, []);
+        }
+
+        test("genTake", () => {
+          const ints = generator(0, _.identity, function (n) { return n + 1; });
+          expect(genTake(10, ints)).toStrictEqual(_.range(10));
+          expect(genTake(100, ints)).toStrictEqual(_.range(100));
+          expect(genTake(1000, ints)).toStrictEqual(_.range(1000));
+        });
+      })
+
+      describe("トランポリンの原則とコールバック", () => {
+        function asyncGetAny(interval, urls, onsuccess, onfailure) {
+          const n = urls.length;
+          const looper = function (i) {
+            setTimeout(function () {
+              if (i < n) {
+                onsuccess(urls[i]);
+              } else {
+                onfailure("all failed");
+              }
+            }, interval);
+          };
+
+          looper(0);
+          return "go";
+        }
+
+        test("asyncGetAny", () => {
+          const urls = ["http://example1.com", "http://example2.com", "http://example3.com"];
+          const t = asyncGetAny(1000, urls, function (url) {
+            console && console.log("success", url);
+          }
+            , function (msg) {
+              console && console.log("failed", msg);
+            });
+          expect(t).toBe("go");
+        });
+      })
+    });
+
+    describe("再帰は低レイヤーでの操作", () => {
+      const groupFrom = curry2(_.groupBy)(_.first);
+      const groupTo = curry2(_.groupBy)(second);
+
+      test("groupFrom", () => {
+        expect(groupFrom(influences)).toStrictEqual({
+          "Lisp": [["Lisp", "Smalltalk"], ["Lisp", "Scheme"]],
+          "Smalltalk": [["Smalltalk", "Self"]],
+          "Scheme": [["Scheme", "JavaScript"], ["Scheme", "Lua"]],
+          "Self": [["Self", "Lua"], ["Self", "JavaScript"]]
+        });
+      });
+
+      test("groupTo", () => {
+        expect(groupTo(influences)).toStrictEqual({
+          "Smalltalk": [["Lisp", "Smalltalk"]],
+          "Scheme": [["Lisp", "Scheme"]],
+          "Self": [["Smalltalk", "Self"]],
+          "JavaScript": [["Scheme", "JavaScript"], ["Self", "JavaScript"]],
+          "Lua": [["Scheme", "Lua"], ["Self", "Lua"]]
+        });
+      });
+
+      function influenced(graph, node) {
+        return _.map(groupFrom(graph)[node], second);
+      }
+
+      test("influenced", () => {
+        expect(influenced(influences, "Lisp")).toStrictEqual(["Smalltalk", "Scheme"]);
+        expect(influenced(influences, "Scheme")).toStrictEqual(["JavaScript", "Lua"]);
+      });
+    })
+  });
 
   describe("7章 純粋性、不変性、変更ポリシー", () => { });
 
