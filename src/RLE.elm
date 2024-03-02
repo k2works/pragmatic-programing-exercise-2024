@@ -10,9 +10,27 @@ group list =
         x :: xs ->
             let
                 ( ys, zs ) =
-                    List.partition ((==) x) xs
+                    span ((==) x) xs
             in
             (x :: ys) :: group zs
+
+
+span : (a -> Bool) -> List a -> ( List a, List a )
+span predicate list =
+    case list of
+        [] ->
+            ( [], [] )
+
+        x :: xs ->
+            if predicate x then
+                let
+                    ( ys, zs ) =
+                        span predicate xs
+                in
+                ( x :: ys, zs )
+
+            else
+                ( [], list )
 
 
 groupAndCount : List Char -> List ( Char, Int )
