@@ -39,9 +39,4 @@ rle str =
                     else
                         ( [], list )
     in
-    (String.concat << List.map rl2str << groupAndCount << String.toList) str
-
-
-rl2str : ( Char, Int ) -> String
-rl2str ( c, n ) =
-    String.fromChar c ++ String.fromInt n
+    (String.concat << List.map (\( c, n ) -> String.fromChar c ++ String.fromInt n) << groupAndCount << String.toList) str
