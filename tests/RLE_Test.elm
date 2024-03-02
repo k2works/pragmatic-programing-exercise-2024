@@ -1,4 +1,4 @@
-module Example exposing (..)
+module RLE_Test exposing (..)
 
 import Expect
 import RLE exposing (rle)
