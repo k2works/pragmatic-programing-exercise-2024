@@ -1,6 +1,29 @@
 module RLE exposing (..)
 
 
+group : List a -> List (List a)
+group list =
+    case list of
+        [] ->
+            []
+
+        x :: xs ->
+            let
+                ( ys, zs ) =
+                    List.partition ((==) x) xs
+            in
+            (x :: ys) :: group zs
+
+
+groupAndCount : List Char -> List ( Char, Int )
+groupAndCount list =
+    let
+        grouped =
+            group list
+    in
+    List.map (\subList -> ( List.head subList |> Maybe.withDefault ' ', List.length subList )) grouped
+
+
 rle : String -> String
 rle str =
     (fromCharAndRunLength << toCharAndRunLength) str
@@ -22,8 +45,8 @@ toCharAndRunLength =
 
 
 toRls : String -> List ( Char, Int )
-toRls =
-    Debug.todo "toRls"
+toRls str =
+    toPairs << groupAndCount <| String.toList str
 
 
 toPairs : List ( Char, Int ) -> List ( Char, Int )
