@@ -1,8 +1,17 @@
-import { sum } from "./app.js";
+import { rle } from "./app.js";
 
-test("adds 1 + 2 to equal 3", () => {
-  const result = sum(1, 2);
-  expect(result).toBe(3);
+describe("RLE tests", () => {
+  test("empty string", () => {
+    expect(rle("")).toBe("");
+  });
+
+  test("single character", () => {
+    expect(rle("A")).toBe("A1");
+  });
+
+  test("multiple characters", () => {
+    expect(rle("AAABBCCCAAA")).toBe("A3B2C3A3");
+  });
 });
 
 describe("Lodashの基本的な使い方", () => {
