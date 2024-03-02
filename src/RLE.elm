@@ -53,11 +53,6 @@ toPair str =
     ( List.head charList |> Maybe.withDefault ' ', String.length str )
 
 
-anyElm : String -> Char
-anyElm =
-    Debug.todo "anyElm"
-
-
 len : String -> Int
 len =
     Debug.todo "len"
