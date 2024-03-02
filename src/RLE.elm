@@ -40,15 +40,10 @@ rl2str ( c, n ) =
 
 
 toCharAndRunLength : String -> List ( Char, Int )
-toCharAndRunLength =
-    toPairs << toRls
+toCharAndRunLength str =
+    groupAndCount <| String.toList str
 
 
-toRls : String -> List ( Char, Int )
-toRls str =
-    toPairs << groupAndCount <| String.toList str
-
-
-toPairs : List ( Char, Int ) -> List ( Char, Int )
+toPairs : String -> ( Char, Int )
 toPairs =
     Debug.todo "toPairs"
