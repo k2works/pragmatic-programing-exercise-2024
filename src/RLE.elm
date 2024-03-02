@@ -51,8 +51,3 @@ toPair str =
             String.toList str
     in
     ( List.head charList |> Maybe.withDefault ' ', String.length str )
-
-
-len : String -> Int
-len =
-    Debug.todo "len"
