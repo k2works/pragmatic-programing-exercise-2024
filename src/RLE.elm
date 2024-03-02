@@ -8,7 +8,7 @@ rle str =
 
 fromCharAndRunLength : List ( Char, Int ) -> String
 fromCharAndRunLength =
-    cat << rls2str
+    String.concat << rls2str
 
 
 rls2str : List ( Char, Int ) -> List String
