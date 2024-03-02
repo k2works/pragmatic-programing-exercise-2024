@@ -8,17 +8,7 @@ rle str =
 
 fromCharAndRunLength : List ( Char, Int ) -> String
 fromCharAndRunLength =
-    String.concat << rls2str
-
-
-rls2str : List ( Char, Int ) -> List String
-rls2str =
-    foreach rl2str
-
-
-foreach : (a -> b) -> List a -> List b
-foreach =
-    Debug.todo "Implement me!"
+    String.concat << List.map rl2str
 
 
 rl2str : ( Char, Int ) -> String
