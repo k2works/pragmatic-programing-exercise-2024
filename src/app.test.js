@@ -1,5 +1,3 @@
-const exp = require("constants");
-
 describe("JavaScriptで学ぶ関数型プログラミング", () => {
   const _ = require("lodash");
 
@@ -305,6 +303,26 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
   const rev = invoker('reverse', Array.prototype.reverse);
 
   const isOdd = complement(isEven);
+
+  const rand = partial1(_.random, 1);
+
+  function skipTake(n, coll) {
+    const ret = [];
+    const sz = _.size(coll);
+
+    for (let index = 0; index < sz; index += n) {
+      ret.push(coll[index]);
+    }
+
+    return ret;
+  }
+
+  const sqrPost = condition1(
+    validator("結果は数値である必要があります", _.isNumber),
+    validator("結果はゼロでない必要があります", complement(zero)),
+    validator("結果は正である必要があります", greaterThan(0))
+  );
+  const megaCheckedSqr = _.flowRight(partial(sqrPost, _.identity), checkedSqr);
 
   describe("1章 関数型JavaScriptへのいざない", () => {
     describe("JavaScriptに関する事実", () => {
@@ -2570,7 +2588,386 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
     })
   });
 
-  describe("7章 純粋性、不変性、変更ポリシー", () => { });
+  describe("7章 純粋性、不変性、変更ポリシー", () => {
+    describe("純粋性", () => {
+      const rand = partial1(_.random, 1);
+
+      test("rand", () => {
+        expect(rand(10)).toBeGreaterThanOrEqual(1);
+        expect(rand(10)).toBeLessThanOrEqual(10);
+      });
+
+      function randString(len) {
+        const ascii = repeatedly(len, function () {
+          return rand(26);
+        });
+
+        return _.map(ascii, function (n) {
+          return n.toString(36);
+        }).join('');
+      }
+
+      test("randString", () => {
+        expect(randString(10).length).toBe(10);
+      });
+
+      describe("純粋性とテストの関係", () => {
+        describe("_.map", function () {
+          test("should return an array made from...", () => {
+            expect(_.map([1, 2, 3], sqr)).toStrictEqual([1, 4, 9]);
+          });
+        });
+      })
+    })
+
+    describe("純粋と不純を分離する", () => {
+      function generateRandomCharacter() {
+        return _.random(26).toString(36);
+      }
+
+      function generateString(charGen, len) {
+        return repeatedly(len, charGen).join('');
+      }
+
+      test("generateString", () => {
+        expect(generateString(generateRandomCharacter, 10).length).toBe(10);
+      });
+
+      const composedRandomString = partial1(generateString, generateRandomCharacter);
+
+      test("composedRandomString", () => {
+        expect(composedRandomString(10).length).toBe(10);
+      });
+
+      describe("generateString", function () {
+        const result = generateString(always('a'), 10);
+
+        test("特定の長さを持った文字列を返す", () => {
+          expect(typeof result).toBe('string');
+          expect(result.length).toBe(10);
+        });
+
+        test("文字生成関数が返す文字に合致する", () => {
+          expect(result).toBe('aaaaaaaaaa');
+        });
+      });
+
+      describe("不純関数を適切にテストする", () => {
+        describe("generateRandomCharacter", function () {
+          const result = repeatedly(1000, generateRandomCharacter);
+
+          test("長さ1の文字列を返す", () => {
+            expect(_.every(result, _.isString)).toBe(true);
+            expect(_.every(result, function (s) { return s.length === 1; })).toBe(true);
+          })
+
+          test("アルファベットの小文字が数字を返す", () => {
+            expect(_.every(result, function (s) { return /[a-z0-9]/.test(s); })).toBe(true);
+            expect(_.every(result, function (s) { return /[A-Z]/.test(s); })).toBe(false);
+          })
+        });
+      });
+
+      describe("純粋性と参照透過性との関係", () => {
+        function second(a) {
+          return _.head(_.tail(a));
+        }
+
+        test("second", () => {
+          expect(second([1, 2, 3], 1)).toBe(2);
+          expect(second(['a', 'b', 'c'], 1)).toBe('b');
+
+          const a = ['a', 'b', 'c'];
+          expect(second(a, 1)).toBe('b');
+          expect(a === a).toBe(true);
+          expect(nth(a, 1)).toBe('b');
+          expect(_.isEqual(a, ['a', 'b', 'c'])).toBe(true);
+        });
+      })
+
+      describe("純粋性と冪等性の関係", () => {
+        const a = [1, [10, 20, 30], 3, 4];
+
+        const secondTwice = _.flowRight(second, second);
+
+        test("secondTwice", () => {
+          expect(secondTwice(a)).toBe(20);
+          expect(secondTwice(a)).toBe(20);
+        });
+      })
+    })
+
+    describe("不変性", () => {
+      test("s", () => {
+        const s = "Lemongrab";
+        expect(s.toUpperCase()).toBe("LEMONGRAB");
+      });
+
+      test("obj", () => {
+        let key = "lemongrab";
+        const obj = { lemongrab: "Earl" };
+
+        function doSomethingThatMutaesSting(s) {
+          return s[0].toUpperCase() + s.substr(1);
+        }
+        expect(obj[key] === "Earl").toBe(true);
+        key = doSomethingThatMutaesSting(key);
+        expect(obj[key]).toBe(undefined);
+        expect(obj["lemonjon"]).toBe(undefined);
+      });
+
+      test("obj", () => {
+        const obj = { lemongrab: "Earl" };
+
+        (function (o) {
+          _.extend(o, { lemongrab: "King" });
+        })(obj);
+
+        expect(obj.lemongrab).not.toBe("Earl");
+      });
+
+      describe("誰もいない森で木が倒れたら、音がするでしょうか？", () => {
+        function skipTake(n, coll) {
+          const ret = [];
+          const sz = _.size(coll);
+
+          for (let index = 0; index < sz; index += n) {
+            ret.push(coll[index]);
+          }
+
+          return ret;
+        }
+
+        test("skipTake", () => {
+          expect(skipTake(2, [1, 2, 3, 4])).toStrictEqual([1, 3]);
+          expect(skipTake(3, _.range(20))).toStrictEqual([0, 3, 6, 9, 12, 15, 18]);
+        });
+      });
+
+      describe("不変性と、その再帰との関係", () => {
+        function summ(array) {
+          let result = 0;
+          const sz = array.length;
+
+          for (let i = 0; i < sz; i++) result += array[i];
+          return result;
+        }
+
+        test("summ", () => {
+          expect(summ(_.range(1, 11))).toBe(55);
+        });
+
+        function summRec(array, seed) {
+          if (_.isEmpty(array)) return seed;
+          else return summRec(_.tail(array), _.head(array) + seed);
+        }
+
+        test("summRec", () => {
+          expect(summRec([], 0)).toBe(0);
+          expect(summRec(_.range(1, 11), 0)).toBe(55);
+        });
+      });
+
+      describe("防御的フリーズとクローン", () => {
+        test("freeze", () => {
+          const a = [1, 2, 3];
+          expect(a[1]).toBe(2);
+          a[1] = 42;
+          expect(a[1]).toBe(42);
+          Object.freeze(a);
+          expect(() => a[1] = 108).toThrow();
+          expect(a[1]).toBe(42);
+          expect(Object.isFrozen(a)).toBe(true);
+
+          const x = [{ a: [1, 2, 3], b: 42 }, { c: { d: [] } }];
+          Object.freeze(x);
+          expect(() => x[0] = "").toThrow();
+          expect(() => x[1]['c']['d'] = 100000).not.toThrow();
+        });
+
+        function deepFreeze(obj) {
+          if (!Object.isFrozen(obj)) {
+            Object.freeze(obj);
+          }
+
+          for (let key in obj) {
+            if (!obj.hasOwnProperty(key) || !_.isObject(obj[key])) continue;
+            deepFreeze(obj[key]);
+          }
+        }
+
+        test("deepFreeze", () => {
+          const x = [{ a: [1, 2, 3], b: 42 }, { c: { d: [] } }];
+          deepFreeze(x);
+          expect(() => x[0] = "").toThrow();
+          expect(() => x[1]['c']['d'] = 100000).toThrow();
+        });
+      })
+
+      describe("関数レベルの不変性を意識する", () => {
+        const freq = curry2(_.countBy)(_.identity);
+        const a = repeatedly(1000, partial1(rand, 2));
+        const copy = _.clone(a);
+
+        test("freq", () => {
+          expect(_.isEqual(a, copy)).toBe(true);
+          freq(skipTake(2, a))
+          expect(_.isEqual(a, copy)).toBe(true);
+        });
+
+        const person = { fname: "Simon" };
+
+        test("person", () => {
+          expect(_.extend(person,
+            { lname: "Petrikov" }, { age: 28 }, { age: 108 })
+          ).toStrictEqual(
+            { age: 108, fname: "Simon", lname: "Petrikov" }
+          );
+          expect(person).toStrictEqual(
+            { age: 108, fname: "Simon", lname: "Petrikov" }
+          );
+        });
+
+        function merge(/*args*/) {
+          return _.extend.apply(null, construct({}, arguments));
+        }
+
+        test("merge", () => {
+          const person = { fname: "Simon" };
+
+          expect(merge(person,
+            { lname: "Petrikov" }, { age: 28 }, { age: 108 })
+          ).toStrictEqual(
+            { age: 108, fname: "Simon", lname: "Petrikov" }
+          );
+          expect(person).toStrictEqual(
+            { fname: "Simon" }
+          );
+        });
+      })
+
+      describe("オブジェクトの不変性を観察する", () => {
+        function Point(x, y) {
+          this._x = x;
+          this._y = y;
+        }
+
+        Point.prototype = {
+          withX: function (x) {
+            return new Point(x, this._y);
+          },
+
+          withY: function (y) {
+            return new Point(this._x, y);
+          }
+        };
+
+        test("Point", () => {
+          const p = new Point(0, 1);
+          expect(p.withX(1000)._x).toBe(1000);
+          expect(p).toStrictEqual({ _x: 0, _y: 1 });
+          expect((new Point(0, 1)).withX(100).withY(-100)).toStrictEqual({ _x: 100, _y: -100 });
+        });
+
+        function Queue(elems) {
+          this._q = elems;
+        }
+
+        Queue.prototype = {
+          enqueue: function (thing) {
+            return new Queue(cat(this._q, [thing]));
+          }
+        };
+
+        test("Queue", () => {
+          const seed = [1, 2, 3];
+          const q = new Queue(seed);
+          expect(q).toStrictEqual({ _q: [1, 2, 3] });
+          const q2 = q.enqueue(108);
+          expect(q2).toStrictEqual({ _q: [1, 2, 3, 108] });
+          expect(q).toStrictEqual({ _q: [1, 2, 3] });
+          seed.push(10000);
+          expect(q).toStrictEqual({ _q: [1, 2, 3, 10000] });
+        });
+
+        const SaferQueue = function (elems) {
+          this._q = _.clone(elems);
+        }
+
+        SaferQueue.prototype = {
+          enqueue: function (thing) {
+            return new SaferQueue(cat(this._q, [thing]));
+          }
+        };
+
+        test("SaferQueue", () => {
+          const seed = [1, 2, 3];
+          const q = new SaferQueue(seed);
+          expect(q).toStrictEqual({ _q: [1, 2, 3] });
+          const q2 = q.enqueue(108);
+          expect(q2).toStrictEqual({ _q: [1, 2, 3, 108] });
+          expect(q).toStrictEqual({ _q: [1, 2, 3] });
+          seed.push(10000);
+          expect(q).toStrictEqual({ _q: [1, 2, 3] });
+          q._q.push(-1111);
+          expect(q).toStrictEqual({ _q: [1, 2, 3, -1111] });
+          SaferQueue.prototype.enqueue = sqr;
+          expect(q.enqueue(42)).toStrictEqual(1764);
+        });
+      })
+
+      describe("オブジェクト操作は往々にして低レイヤー操作", () => {
+        const SaferQueue = function (elems) {
+          this._q = _.clone(elems);
+        }
+
+        SaferQueue.prototype = {
+          enqueue: function (thing) {
+            return new SaferQueue(cat(this._q, [thing]));
+          }
+        };
+        function queue() {
+          return new SaferQueue(_.toArray(arguments));
+        }
+
+        test("queue", () => {
+          const q = queue(1, 2, 3);
+          const enqueue = invoker('enqueue', SaferQueue.prototype.enqueue);
+          expect(enqueue(q, 42)).toStrictEqual({ _q: [1, 2, 3, 42] });
+        });
+      });
+    });
+
+    describe("変更コントロールのポリシー", () => {
+      function Container(init) {
+        this._value = init;
+      }
+
+      test("Container", () => {
+        const aNumber = new Container(42);
+        expect(aNumber).toEqual({ _value: 42 });
+      });
+
+      Container.prototype = {
+        update: function (fn) {
+          const arg = _.tail(arguments);
+          const oldValue = this._value;
+          this._value = fn.apply(this, construct(oldValue, arg));
+          return this._value;
+        }
+      };
+
+      test("Container.prototype", () => {
+        const aNumber = new Container(42);
+        expect(aNumber.update(function (n) { return n + 1; })).toBe(43);
+        expect(aNumber).toEqual({ _value: 43 });
+        expect(aNumber.update(function (n, x, y, z) { return n / x / y / z; }, 1, 2, 3)).toBe(7.166666666666667);
+        expect(() => (aNumber.update(_.flowRight(megaCheckedSqr, always(0))))).toThrow("0ではいけません");
+      });
+    });
+
+    describe("まとめ", () => {});
+  });
 
   describe("8章 フローベースプログラミング", () => { });
 
