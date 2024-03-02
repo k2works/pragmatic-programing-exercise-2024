@@ -13,6 +13,16 @@ fromCharAndRunLength =
 
 rls2str : List ( Char, Int ) -> List String
 rls2str =
+    foreach rl2str
+
+
+foreach : (a -> b) -> List a -> List b
+foreach =
+    Debug.todo "Implement me!"
+
+
+rl2str : ( Char, Int ) -> String
+rl2str ( c, n ) =
     Debug.todo "Implement me!"
 
 
