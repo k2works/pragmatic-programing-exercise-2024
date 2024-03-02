@@ -7,6 +7,7 @@
     "start": "npx gulp",
     "dev": "npx elm reactor",
     "build": "npm-run-all build:gulp build:elm",
+    "build:elm": "npx elm make src/Main.elm --output=dist/elm.js --optimize",
     "build:gulp": "npx gulp build",
     "test": "npm-run-all test:gulp test:elm",
     "test:gulp": "npx gulp test",
