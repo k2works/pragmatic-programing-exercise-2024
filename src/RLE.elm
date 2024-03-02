@@ -16,11 +16,16 @@ rl2str ( c, n ) =
     String.fromChar c ++ String.fromInt n
 
 
-cat : List String -> String
-cat =
-    Debug.todo "Implement me!"
-
-
 toCharAndRunLength : String -> List ( Char, Int )
 toCharAndRunLength =
-    Debug.todo "Implement me!"
+    toPairs << toRls
+
+
+toRls : String -> List ( Char, Int )
+toRls =
+    Debug.todo "toRls"
+
+
+toPairs : List ( Char, Int ) -> List ( Char, Int )
+toPairs =
+    Debug.todo "toPairs"
