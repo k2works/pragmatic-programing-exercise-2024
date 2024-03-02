@@ -44,6 +44,20 @@ toCharAndRunLength str =
     groupAndCount <| String.toList str
 
 
-toPairs : String -> ( Char, Int )
-toPairs =
-    Debug.todo "toPairs"
+toPair : String -> ( Char, Int )
+toPair str =
+    let
+        charList =
+            String.toList str
+    in
+    ( List.head charList |> Maybe.withDefault ' ', String.length str )
+
+
+anyElm : String -> Char
+anyElm =
+    Debug.todo "anyElm"
+
+
+len : String -> Int
+len =
+    Debug.todo "len"
