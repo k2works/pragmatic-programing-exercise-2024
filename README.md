@@ -23,6 +23,12 @@ npm install
 npm start
 ```
 
+```bash
+npm i elm elm-test elm-format -D
+npx elm init
+nxp elm-test init
+```
+
 ## 構成
 
 - [要件](./docs/req.adoc)
