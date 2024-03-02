@@ -13,7 +13,7 @@ fromCharAndRunLength =
 
 rl2str : ( Char, Int ) -> String
 rl2str ( c, n ) =
-    Debug.todo "Implement me!"
+    String.fromChar c ++ String.fromInt n
 
 
 cat : List String -> String
