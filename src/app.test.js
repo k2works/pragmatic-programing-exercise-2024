@@ -324,6 +324,65 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
   );
   const megaCheckedSqr = _.flowRight(partial(sqrPost, _.identity), checkedSqr);
 
+  function project(table, keys) {
+    return _.map(table, function (obj) {
+      return _.pick.apply(null, construct(obj, keys));
+    });
+  }
+
+  function rename(obj, newNames) {
+    return _.reduce(
+      newNames,
+      function (o, nu, old) {
+        if (_.has(obj, old)) {
+          o[nu] = obj[old];
+          return o;
+        } else return 0;
+      },
+      _.omit.apply(null, construct(obj, _.keys(newNames))),
+    );
+  }
+
+  function as(table, newNames) {
+    return _.map(table, function (obj) {
+      return rename(obj, newNames);
+    });
+  }
+
+  function restrict(table, pred) {
+    return _.reduce(
+      table,
+      function (newTable, obje) {
+        if (truthy(pred(obje))) return newTable;
+        else return _.without(newTable, obje);
+      },
+      table,
+    );
+  }
+
+  function actions(acts, done) {
+    return function (seed) {
+      const init = { values: [], state: seed };
+
+      const intermediate = _.reduce(acts, function (stateObj, action) {
+        const result = action(stateObj.state);
+        const values = cat(stateObj.values, [result.answer]);
+        return { values: values, state: result.state };
+      }, init);
+
+      const keep = _.filter(intermediate.values, existy);
+      return done(keep, intermediate.state);
+    };
+  }
+
+  function pipeline(seed /*, args */) {
+    return _.reduce(
+      _.tail(arguments),
+      function (l, r) { return r(l); },
+      seed
+    );
+  }
+
   describe("1章 関数型JavaScriptへのいざない", () => {
     describe("JavaScriptに関する事実", () => {
       function splat(fun) {
@@ -2966,10 +3025,317 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
       });
     });
 
-    describe("まとめ", () => {});
+    describe("まとめ", () => { });
   });
 
-  describe("8章 フローベースプログラミング", () => { });
+  describe("8章 フローベースプログラミング", () => {
+    describe("チェーン", () => {
+      function createPerson() {
+        let firstName = "";
+        let lastName = "";
+        let age = 0;
+
+        return {
+          setFirstName: function (fn) {
+            firstName = fn;
+            return this;
+          },
+          setLastName: function (ln) {
+            lastName = ln;
+            return this;
+          },
+          setAge: function (a) {
+            age = a;
+            return this;
+          },
+          toString: function () {
+            return [firstName, lastName, age].join(' ');
+          }
+        };
+      }
+
+      test("creatPersion", () => {
+        const person = createPerson();
+        expect(person.setFirstName("Mike").setLastName("Fogus").setAge(108).toString()).toBe("Mike Fogus 108");
+      })
+
+      test("_.tap", () => {
+        const result = _.tap([1, 2, 3], note);
+        expect(result).toStrictEqual([1, 2, 3]);
+      })
+
+      test("_.chain", () => {
+        _.chain([1, 2, 3, 200])
+          .filter(function (num) { return num % 2 == 0; })
+          .tap(note)
+          .map(function (num) { return num * num; })
+          .value();
+      });
+
+      describe("レイジーチェーン（遅延実行を行うチェーン）", () => {
+        function LazyChain(obj) {
+          this._calls = [];
+          this._target = obj;
+        }
+
+        LazyChain.prototype.invoke = function (methodName, ...args) {
+          this._calls.push(function (target) {
+            const meth = target[methodName];
+            if (typeof meth === 'function') {
+              return meth.apply(target, args);
+            }
+          });
+          return this;
+        };
+
+        test("LazyChain", () => {
+          const l = new LazyChain([2, 1, 3]).invoke('sort')._calls[0]([[2, 1, 3]]);
+          //expect(l).toStrictEqual([1, 2, 3]);
+        });
+
+        LazyChain.prototype.force = function () {
+          return _.reduce(this._calls, function (target, thunk) {
+            return thunk(target);
+          }, this._target);
+        }
+
+        test("LazyChain.prototype.force", () => {
+          const result = new LazyChain([2, 1, 3]).invoke('sort').force();
+          expect(result).toStrictEqual([1, 2, 3]);
+
+          const result2 = new LazyChain([2, 1, 3])
+            .invoke('concat', [8, 5, 7, 6])
+            .invoke('sort')
+            .invoke('join', ',')
+            .force();
+          expect(result2).toBe("1,2,3,5,6,7,8");
+        });
+
+        LazyChain.prototype.tap = function (fun) {
+          this._calls.push(function (target) {
+            fun(target);
+            return target;
+          });
+          return this;
+        }
+
+        test("LazyChain.prototype.tap", () => {
+          const result = new LazyChain([2, 1, 3])
+            .invoke('sort')
+            .tap(note)
+            .force();
+          expect(result).toStrictEqual([1, 2, 3]);
+        });
+
+        function LazyChainChainChain(obj) {
+          const isLC = obj instanceof LazyChain;
+          this._calls = isLC ? cat(obj._calls, []) : [];
+          this._target = isLC ? obj._target : obj;
+        }
+        LazyChainChainChain.prototype = LazyChain.prototype;
+
+        test("LazyChainChainChain", () => {
+          const result = new LazyChainChainChain(new LazyChain([1, 2, 3]))
+            .invoke('toString')
+            .force();
+          expect(result).toStrictEqual("1,2,3");
+        });
+      })
+
+      describe("Promise", () => {
+      });
+    });
+
+    describe("パイプライン", () => {
+      function pipeline(seed /*, args */) {
+        return _.reduce(
+          _.tail(arguments),
+          function (l, r) { return r(l); },
+          seed
+        );
+      }
+
+      test("pipeline", () => {
+        expect(pipeline()).toBe(undefined);
+        expect(pipeline(42)).toBe(42);
+        expect(pipeline(42, function (n) { return -n; })).toBe(-42);
+      });
+
+      function fifth(a) {
+        return pipeline(a
+          , _.tail
+          , _.tail
+          , _.tail
+          , _.tail
+          , _.head);
+      }
+
+      test("fifth", () => {
+        expect(fifth([1, 2, 3, 4, 5])).toBe(5);
+      });
+
+      function negativeFifth(a) {
+        return pipeline(a
+          , fifth
+          , function (n) { return -n; });
+      }
+
+      test("negativeFifth", () => {
+        expect(negativeFifth([1, 2, 3, 4, 5, 6, 7, 8, 9])).toBe(-5);
+      });
+
+      function firstEditions(table) {
+        return pipeline(table
+          , function (t) { return as(t, { ed: 'edition' }); }
+          , function (t) { return project(t, ['title', 'edition', 'isbn']); }
+          , function (t) {
+            return restrict(t, function (book) {
+              return book.edition === 1;
+            })
+          })
+      }
+
+      const RQL = {
+        select: curry2(project),
+        as: curry2(as),
+        where: curry2(restrict)
+      };
+
+      function allFirstEditions(table) {
+        return pipeline(table
+          , RQL.as({ ed: 'edition' })
+          , RQL.select(['ttile', 'edition', 'isbn'])
+          , RQL.where(function (book) {
+            return book.edition === 1;
+          }));
+      }
+    });
+
+    describe("データフロー対コントロールフロー（制御構造）", () => {
+      describe("共通の形をみつける", () => {
+        function actions(acts, done) {
+          return function (seed) {
+            const init = { values: [], state: seed };
+
+            const intermediate = _.reduce(acts, function (stateObj, action) {
+              const result = action(stateObj.state);
+              const values = cat(stateObj.values, [result.answer]);
+              return { values: values, state: result.state };
+            }, init);
+
+            const keep = _.filter(intermediate.values, existy);
+            return done(keep, intermediate.state);
+          };
+        }
+
+        function mSqr() {
+          return function (state) {
+            const ans = sqr(state);
+            return { answer: ans, state: ans };
+          };
+        }
+
+        test("actions", () => {
+          const doubleSquare = actions(
+            [mSqr(), mSqr()],
+            function (values) {
+              return values;
+            }
+          );
+
+          expect(doubleSquare(10)).toStrictEqual([100, 10000]);
+        });
+
+        function mNote() {
+          return function (state) {
+            note();
+            return { answer: undefined, state: state };
+          }
+        }
+
+        function mNeg() {
+          return function (state) {
+            return { answer: -state, state: -state };
+          }
+        }
+
+        test("actions", () => {
+          const negativeSqrAction = actions(
+            [mSqr(), mNeg(), mNote()],
+            function (_, state) {
+              return state;
+            }
+          );
+
+          expect(negativeSqrAction(9)).toBe(-81);
+        });
+      })
+
+      describe("アクションの生成をシンプルにする関数", () => {
+        function lift(answerFun, stateFun) {
+          return function (/* arguments */) {
+            const args = _.toArray(arguments);
+            return function (state) {
+              const ans = answerFun.apply(null, construct(state, args));
+              const s = stateFun ? stateFun(state) : ans;
+              return { answer: ans, state: s };
+            };
+          };
+        }
+
+        test("lift", () => {
+          const mSqr2 = lift(sqr);
+          const mNote2 = lift(note, _.identity);
+          const mNeg2 = lift(function (n) { return -n; });
+
+          const negativeSqrAction2 = actions(
+            [mSqr2(), mNeg2(), mNote2()],
+            function (_, state) {
+              return state;
+            }
+          );
+
+          expect(negativeSqrAction2(100)).toBe(-10000);
+        });
+
+        const push = lift(function (stack, e) { return construct(e, stack); });
+        const pop = lift(_.head, _.tail);
+
+        test("push", () => {
+          const stackAction = actions(
+            [push(1), push(2), pop()],
+            function (values, state) {
+              return values;
+            }
+          );
+
+          expect(stackAction([])).toStrictEqual([[1], [2, 1], 2]);
+        });
+
+
+        test("pipeline", () => {
+          const stackAction = actions(
+            [push(1), push(2), pop()],
+            function (values, state) {
+              return values;
+            }
+          );
+
+          const result =
+            pipeline(
+              []
+              , stackAction
+              , _.chain)
+          _.each(function (elem) {
+            console.log(polyToString(elem));
+          })
+
+          expect(stackAction([])).toStrictEqual([[1], [2, 1], 2]);
+        });
+      });
+    })
+
+  });
 
   describe("9章 クラスを使わないプログラミング", () => { });
 });
