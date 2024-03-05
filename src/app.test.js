@@ -1,3 +1,5 @@
+const exp = require("constants");
+
 describe("JavaScriptで学ぶ関数型プログラミング", () => {
   const _ = require("lodash");
 
@@ -382,6 +384,119 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
       seed
     );
   }
+
+  function dispatch(/* 任意の数の関数 */) {
+    const funs = _.toArray(arguments);
+    const size = funs.length;
+
+    return function (target /*, args */) {
+      let ret;
+      let args = _.last(arguments);
+
+      for (let funIndex = 0; funIndex < size; funIndex++) {
+        ret = funs[funIndex].apply(funs[funIndex], construct(target, args));
+        if (existy(ret)) return ret;
+      }
+
+      return ret;
+    };
+  }
+
+  const str = dispatch(invoker('toString', Array.prototype.toString), invoker('toString', String.prototype.toString));
+
+  function Container(init) {
+    this._value = init;
+  }
+
+  const HoleMixin = {
+    setValue: function (newValue) {
+      const oldVal = this._value;
+      this.validate(newValue);
+      this._value = newValue;
+      this.notify(oldVal, newValue);
+      return this._value;
+    }
+  };
+
+  const Hole = function (val) {
+    Container.call(this, val);
+  }
+
+  const ObserverMixin = (function () {
+    let _watcher = [];
+    return {
+      watch: function (fun) {
+        _watcher.push(fun);
+        return _.size(_watcher);
+      },
+      notify: function (oldVal, newVal) {
+        _.each(_watcher, function (watcher) {
+          watcher.call(this, oldVal, newVal);
+        });
+        return _.size(_watcher);
+      }
+    }
+  })();
+
+  const ValidateMixin = {
+    addValidator: function (fun) {
+      this._validator = fun;
+    },
+    init: function (val) {
+      this.validate(val);
+    },
+    validate: function (val) {
+      if (existy(this._validator) && !this._validator(val))
+        fail("不正な値を設定しようとしました：" + polyToString(val));
+    }
+  }
+
+  function deepClone(obj) {
+    if (!existy(obj) || !_.isObject(obj)) return obj;
+
+    const temp = new obj.constructor();
+    for (let key in obj) {
+      if (obj.hasOwnProperty(key)) temp[key] = deepClone(obj[key]);
+    }
+
+    return temp;
+  }
+
+  const SwapMinx = {
+    swap: function (fun /*, args */) {
+      const args = _.tail(arguments);
+      const newValue = fun.apply(this, construct(this._value, args));
+      return this.setValue(newValue);
+    }
+  };
+
+  const SnapshotMixin = {
+    snapshot: function () {
+      return deepClone(this._value);
+    }
+  };
+
+  function polyToString(obj) {
+    if (obj instanceof String) return obj;
+    else if (obj instanceof Array) return stringifyArray(obj);
+    else if (obj instanceof Object) return stringifyObject(obj);
+    else return String(obj);
+  }
+
+  const CAS = function (val) {
+    Hole.call(this, val);
+  }
+  const CASMixin = {
+    swap: function (oldVal, f) {
+      if (this._value === oldVal) {
+        this.setValue(f(this._value));
+        return this._value;
+      } else {
+        return undefined;
+      }
+    }
+  };
+
 
   describe("1章 関数型JavaScriptへのいざない", () => {
     describe("JavaScriptに関する事実", () => {
@@ -3337,8 +3452,360 @@ describe("JavaScriptで学ぶ関数型プログラミング", () => {
 
   });
 
-  describe("9章 クラスを使わないプログラミング", () => { });
-});
+  describe("9章 クラスを使わないプログラミング", () => {
+    describe("データ指向", () => {
+      function lazyChain(obj) {
+        const calls = [];
+
+        return {
+          invoke: function (methodName /*, args */) {
+            const args = _.tail(arguments);
+            calls.push(function (target) {
+              const meth = target[methodName];
+              return meth.apply(target, args);
+            });
+            return this;
+          },
+          force: function () {
+            return _.reduce(calls, function (ret, thunk) {
+              return thunk(ret);
+            }, obj);
+          }
+        };
+      }
+
+      test("lazyChain", () => {
+        const result = lazyChain([2, 1, 3])
+          .invoke('concat', [7, 7, 8, 9, 0])
+          .invoke('sort')
+        expect(result.force()).toStrictEqual([0, 1, 2, 3, 7, 7, 8, 9]);
+      })
+
+      describe("関数型を目指して構築", () => {
+        function deferredSort(any) {
+          return lazyChain(any).invoke('sort');
+        }
+
+        function force(thunk) {
+          return thunk.force();
+        }
+
+        test("deferredSort", () => {
+          const deferredSorts = _.map([[2, 1, 3], [7, 7, 1], [0, 9, 5]], deferredSort);
+          expect(_.map(deferredSorts, force)).toStrictEqual([[1, 2, 3], [1, 7, 7], [0, 5, 9]]);
+        });
+
+        const validateTriples = validator(
+          "それぞれの配列は３つの要素を持っている必要があります",
+          function (arrays) {
+            return _.every(arrays, function (a) {
+              return a.length === 3;
+            });
+          });
+
+        const validateTripleStore = partial1(
+          condition1(validateTriples),
+          _.identity
+        );
+
+        test("validateTripleStore", () => {
+          expect(validateTripleStore([[1, 2, 3], [4, 5, 6], [7, 8, 9]])).toStrictEqual([[1, 2, 3], [4, 5, 6], [7, 8, 9]]);
+          expect(() => validateTripleStore([[1, 2, 3], [4, 5, 6], [7, 8]])).toThrow("それぞれの配列は３つの要素を持っている必要があります");
+        });
+
+        function postProcess(arrays) {
+          return _.map(arrays, second);
+        }
+
+        function processTriples(data) {
+          return pipeline(data
+            , JSON.parse
+            , validateTripleStore
+            , deferredSort
+            , force
+            , postProcess
+            , invoker('sort', Array.prototype.sort)
+            , str);
+        }
+
+        test("processTriple", () => {
+          const result = processTriples("[[2, 1, 3], [7, 7, 1], [0, 9, 5]]");
+          expect(result).toBe("1,7,9");
+
+          expect(() => processTriples("[[2, 1, 3], [7, 7, 1], [0, 9]]")).toThrow("それぞれの配列は３つの要素を持っている必要があります");
+
+        })
+      });
+    })
+
+    describe("Mixin", () => {
+      function polyToString(obj) {
+        if (obj instanceof String) return obj;
+        else if (obj instanceof Array) return stringifyArray(obj);
+        else if (obj instanceof Object) return stringifyObject(obj);
+        else return String(obj);
+      }
+
+      function stringifyArray(ary) {
+        return ["[", _.map(ary, polyToString).join(","), "]"].join('');
+      }
+
+      function stringifyObject(obj) {
+        return ["{", _.map(obj, function (v, k) {
+          return polyToString(k) + ":" + polyToString(v);
+        }).join(","), "}"].join('');
+      }
+
+      test("stringifyArray", () => {
+        expect(stringifyArray([1, 2, 3])).toBe("[1,2,3]");
+        expect(stringifyArray([1, [2, 3], 4])).toBe("[1,[2,3],4]");
+      });
+
+      const polyToString2 = dispatch(
+        function (s) { return _.isString(s) ? s : undefined; },
+        function (s) { return _.isArray(s) ? stringifyArray(s) : undefined; },
+        function (s) { return s.toString(); });
+
+      test("polyToString2", () => {
+        expect(polyToString2(42)).toBe("42");
+        expect(polyToString2([1, 2, [3, 4]])).toBe("[1,2,[3,4]]");
+        expect(polyToString2('a')).toBe('a');
+        expect(polyToString2({ a: 1, b: 2 })).toBe("[object Object]");
+      })
+
+      const polyToString3 = dispatch(
+        function (s) { return _.isString(s) ? s : undefined },
+        function (s) { return _.isArray(s) ? stringifyArray(s) : undefined },
+        function (s) { return _.isObject(s) ? JSON.stringify(s) : undefined },
+        function (s) { return s.toString() });
+
+      test("polyToString3", () => {
+        expect(polyToString3(42)).toBe("42");
+        expect(polyToString3([1, 2, [3, 4]])).toBe("[1,2,[3,4]]");
+        expect(polyToString3('a')).toBe('a');
+        expect(polyToString3({ a: 1, b: 2 })).toBe('{"a":1,"b":2}');
+        expect(polyToString3([1, 2, { a: 42, b: [4, 5, 6] }, 77])).toBe("[1,2,{a:42,b:[4,5,6]},77]");
+      })
+
+      describe("コアプロトタイプマンジング", () => {
+        Container.prototype.toString = function () {
+          return ["@<", polyToString(this._value), ">"].join('');
+        }
+
+        test("Container.prototype.toString", () => {
+          expect(new Container(42).toString()).toBe("@<42>");
+          expect(new Container({ a: 42, b: [1, 2, 3] }).toString()).toBe('@<{a:42,b:[1,2,3]}>');
+        });
+
+        test("Array.prototype.toString", () => {
+          Array.prototype.toString = function () {
+            return "DON'T DO THIS";
+          }
+
+          expect([1, 2, 3].toString()).toBe("DON'T DO THIS");
+        });
+      })
+
+      describe("クラス階層構造", () => {
+      })
+
+      describe("階層を変更", () => {
+      })
+
+      describe("Mixinを使って階層を平坦化", () => {
+        function Container(val) {
+          this._value = val;
+          this.init(val);
+        }
+
+        Container.prototype.init = _.identity;
+
+        test("Container", () => {
+          expect(new Container(42)._value).toBe(42);
+        });
+
+        const HoleMixin = {
+          setValue: function (newValue) {
+            const oldVal = this._value;
+            this.validate(newValue);
+            this._value = newValue;
+            this.notify(oldVal, newValue);
+            return this._value;
+          }
+        };
+
+        const Hole = function (val) {
+          Container.call(this, val);
+        }
+
+        const ObserverMixin = (function () {
+          let _watcher = [];
+          return {
+            watch: function (fun) {
+              _watcher.push(fun);
+              return _.size(_watcher);
+            },
+            notify: function (oldVal, newVal) {
+              _.each(_watcher, function (watcher) {
+                watcher.call(this, oldVal, newVal);
+              });
+              return _.size(_watcher);
+            }
+          }
+        })();
+
+        const ValidateMixin = {
+          addValidator: function (fun) {
+            this._validator = fun;
+          },
+          init: function (val) {
+            this.validate(val);
+          },
+          validate: function (val) {
+            if (existy(this._validator) && !this._validator(val))
+              fail("不正な値を設定しようとしました：" + polyToString(val));
+          }
+        }
+
+        _.extend(Hole.prototype, HoleMixin, ValidateMixin, ObserverMixin);
+
+        test("Hole.prototype", () => {
+          let h = new Hole(42);
+          h.addValidator(always(false));
+          expect(() => h.setValue(9)).toThrow("不正な値を設定しようとしました：9");
+
+          h = new Hole(42);
+          h.addValidator(isEven);
+          expect(() => h.setValue(9)).toThrow("不正な値を設定しようとしました：9");
+          expect(h.setValue(108)).toBe(108);
+
+          h.watch(function (old, nu) {
+            note([old, "を", nu, "に変更"].join(' '));
+          });
+          expect(h.setValue(42)).toBe(42);
+
+          h.watch(function (old, nu) {
+            note(["Veranderende", old, , "tot", nu].join(' '));
+          });
+          expect(h.setValue(36)).toBe(36);
+        });
+
+      })
+
+      describe("mixin拡張を使用した新しい仕組み", () => {
+        const SwapMinx = {
+          swap: function (fun /*, args */) {
+            const args = _.tail(arguments);
+            const newValue = fun.apply(this, construct(this._value, args));
+            return this.setValue(newValue);
+          }
+        };
+
+        test("SwapMinx", () => {
+          const o = { _value: 0, setValue: _.identity };
+          _.extend(o, SwapMinx);
+          expect(o.swap(construct, [1, 2, 3])).toStrictEqual([0, 1, 2, 3]);
+        });
+
+        const SnapshotMixin = {
+          snapshot: function () {
+            return deepClone(this._value);
+          }
+        };
+
+        _.extend(Hole.prototype, HoleMixin, ValidateMixin, ObserverMixin, SwapMinx, SnapshotMixin);
+
+        test("Hole.prototype", () => {
+          const h = new Hole(42);
+          expect(h.snapshot()).toBe(42);
+          expect(h.swap(always(99))).toBe(99);
+          expect(h.snapshot()).toBe(99);
+        });
+
+      })
+
+      describe("Mixinの混ぜ込みによる新しい型", () => {
+        const CAS = function (val) {
+          Hole.call(this, val);
+        }
+
+        const CASMixin = {
+          swap: function (oldVal, f) {
+            if (this._value === oldVal) {
+              this.setValue(f(this._value));
+              return this._value;
+            } else {
+              return undefined;
+            }
+          }
+        };
+
+        _.extend(CAS.prototype, HoleMixin, ValidateMixin, ObserverMixin, SwapMinx, CASMixin, SnapshotMixin)
+
+        test("CAS.prototype", () => {
+          const c = new CAS(42);
+          expect(c.swap(42, always(-1))).toBe(-1);
+          expect(c.snapshot()).toBe(-1);
+          expect(c.swap('not the value', always(1000))).toBe(undefined);
+          expect(c.snapshot()).toBe(-1);
+        });
+
+      })
+
+      describe("メソッドは低レイヤーでの操作", () => {
+        function contain(value) {
+          return new Container(value);
+        }
+
+        test("contain", () => {
+          expect(contain(42)).toEqual({ "_value": 42 });
+        });
+
+        function hole(val /*, validator */) {
+          const h = new Hole(val);
+          const v = _.toArray(arguments)[1];
+
+          if (v) h.addValidator(v);
+          h.setValue(val);
+          return h;
+        }
+
+        test("hole", () => {
+          expect(() => (hole(42, always(false))).setValue(9)).toThrow("不正な値を設定しようとしました：42");
+          const swap = invoker('swap', Hole.prototype.swap);
+          const x = hole(42);
+          expect(swap(x, sqr)).toBe(1764);
+        });
+
+        function cas(val /*, validator */) {
+          const h = hole.apply(this, arguments);
+          const c = new CAS(val);
+          c._validator = h._validator;
+          return c;
+        }
+
+        function snapshot(o) { return o.snapshot(); }
+
+        function addWatcher(o, fun) { o.watch(fun); }
+
+        test("cas", () => {
+          const swap = invoker('swap', Hole.prototype.swap);
+          const x = hole(42);
+
+          addWatcher(x, note);
+          expect(swap(x, sqr)).toBe(1764);
+
+          _.extend(CAS.prototype, HoleMixin, ValidateMixin, ObserverMixin, SwapMinx, CASMixin, SnapshotMixin)
+          const compareAndSwap = invoker('swap', CAS.prototype.swap);
+          const y = cas(9, isOdd);
+
+          expect(compareAndSwap(y, 9, always(1))).toBe(1);
+          expect(snapshot(y)).toBe(1);
+        });
+      })
+    });
+  })
+})
 
 describe("Lodashの基本的な使い方", () => {
   const _ = require("lodash");
