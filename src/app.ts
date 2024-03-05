@@ -4,7 +4,3 @@ export class App {
     console.log("App initialized");
   }
 }
-
-export function sum(a: number, b: number): number {
-  return a + b;
-}
