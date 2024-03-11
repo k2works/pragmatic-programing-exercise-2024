@@ -108,3 +108,7 @@ lib
 .vercel
 
 .idea
+
+.terraform
+*.tfstate
+*.tfstate.backup
