@@ -12,6 +12,11 @@ const contents = `
 - [ ] 本番レベルのTerraformコード
 - [ ] Terraformのコードをテストする
 
+### Terraformのインストール
+
+- [Install Terraform](https://developer.hashicorp.com/terraform/install?product_intent=terraform)
+- [Terraform CLI](https://github.com/tfutils/tfenv)
+
 `;
 
 const usecase = `
