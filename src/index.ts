@@ -5,6 +5,13 @@ const app = new App();
 const dev = require("@k2works/full-stack-lab");
 const contents = `
 ## TODOリスト
+
+- [ ] Terraformをはじめよう
+- [ ] Terraformステートを管理する
+- [ ] モジュールで再利用可能なインフラを作る
+- [ ] 本番レベルのTerraformコード
+- [ ] Terraformのコードをテストする
+
 `;
 
 const usecase = `
