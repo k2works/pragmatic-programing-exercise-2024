@@ -26,6 +26,11 @@ const contents = `
 - [Install Terraform](https://developer.hashicorp.com/terraform/install?product_intent=terraform)
 - [Terraform CLI](https://github.com/tfutils/tfenv)
 
+### 参照
+
+- [aws-icons-for-plantuml](https://github.com/awslabs/aws-icons-for-plantuml/tree/main)
+- [PlantUMLでできるだけきれいなAWS構成図を描く方法](https://qiita.com/sakai00kou/items/18e389fc85a8af59d9e0)
+
 `;
 
 const usecase = `
