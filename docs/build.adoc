@@ -1429,10 +1429,7 @@ VPCGroup(vpc) {
     ElasticLoadBalancing(elb, "Elastic Load Balancing", "")
 
     AvailabilityZoneGroup(az_2, "  Availability Zone 2") {
-      VPCNATGateway(az_2_nat_gateway, "NAT gateway", "")
       EC2Instance(az_2_ec2_1, "Instance", "")
-
-      az_2_nat_gateway -[hidden]d- az_2_ec2_1
     }
 
     LayoutRectangle(layout_rectangle) {
@@ -1443,13 +1440,8 @@ VPCGroup(vpc) {
     }
 
     AvailabilityZoneGroup(az_1, "  Availability Zone 1") {
-      VPCNATGateway(az_1_nat_gateway, "NAT gateway", "")
       EC2Instance(az_1_ec2_1, "Instance", "")
-
-      az_1_nat_gateway -[hidden]d- az_1_ec2_1
     }
-
-    ec2_auto_scaling -[hidden]l- az_1_nat_gateway
 
     asg_1 -[dashed,$AWS_COLOR_SMILE]l- az_1_ec2_1
     asg_1 -[dashed,$AWS_COLOR_SMILE]r- az_2_ec2_1
