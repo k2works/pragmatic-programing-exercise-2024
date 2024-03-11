@@ -12,6 +12,15 @@ const contents = `
 - [ ] 本番レベルのTerraformコード
 - [ ] Terraformのコードをテストする
 
+### AWSアカウントのセットアップ
+
+- 開発組織アカウントを作る
+- アクセスキーを作成する(コマンドラインインターフェース)
+- [AWS CLIのインストール](https://docs.aws.amazon.com/ja_jp/cli/latest/userguide/getting-started-install.html)
+- [aws-shellのインストール](https://github.com/awslabs/aws-shell)
+- [プロファイルの作成](https://qiita.com/shonansurvivors/items/1fb53a2d3b8dddab6629)
+- 動作確認(aws s3 ls --profile dev)
+
 ### Terraformのインストール
 
 - [Install Terraform](https://developer.hashicorp.com/terraform/install?product_intent=terraform)
