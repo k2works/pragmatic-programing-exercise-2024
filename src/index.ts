@@ -4,9 +4,7 @@ const app = new App();
 
 const dev = require("@k2works/full-stack-lab");
 const contents = `
-## 機能名
 ## TODOリスト
-## 仕様
 `;
 
 const usecase = `
@@ -189,5 +187,5 @@ e01 |o..o{ e03
 @enduml
 `;
 
-const mode = "APP"; // "UI" or "API" or "DOC"
+const mode = "DOC"; // "UI" or "API" or "DOC"
 dev.default({ contents, ui, uiModel, uiInteraction, usecase, uml, erd, mode });
