@@ -14,15 +14,9 @@
 actor 開発者
 actor 利用者
 
-cloud "Vercel" as vercel {
-    package "Production Environment" as ui_prd_env {
-      [UI] as ui_prd
-    }
-}
-
-cloud "Heroku" as heroku {
+cloud "AWS" as aws {
     package "Production Environment" as api_prd_env {
-      [API] as api_prd
+      [APP] as app_prd
       [DB] as db_prd
     }
 }
@@ -38,12 +32,10 @@ cloud "GitHub" as github {
 }
 
 開発者 --> repository
-repository --> heroku
-repository --> vercel
-api_prd -> db_prd
-api_prd <-- ui_prd
+repository --> aws
+app_prd -> db_prd
 git -> github_action
-ui_prd <-- 利用者
+app_prd <-- 利用者
 @enduml
 ----
 
@@ -51,13 +43,13 @@ ui_prd <-- 利用者
 
 開発者はアクターによって表され、利用者のアクターもあり、ダイアグラム上では「利用者」と表記されています。
 
-本番環境には、Webアプリケーションを展開するためのプラットフォームであるVercelとHerokuの2つのクラウドがあります。本番環境は、「Production Environment」のUIのためにUIコンポーネントのみを含むパッケージと、「Production Environment」のAPIとデータベースを含むパッケージの2つに分かれています。
+本番環境には、Webアプリケーションを展開するためのプラットフォームであるAWSクラウドがあります。本番環境は、「Production Environment」のアプリケーションとデータベースを含むパッケージで構成されています。
 
 リポジトリは、Gitバージョン管理システム「Git Hub」と継続的インテグレーションシステムの「GitHub Action」という2つのパッケージを含むGitHubクラウドで表されています。
 
-このダイアグラムは、開発者がコードをリポジトリにプッシュすることで、GitHub Actionを使用した継続的インテグレーションプロセスがトリガーされることを示しています。継続的インテグレーションプロセスは、コードをビルドしてテストし、VercelとHerokuの本番環境の両方に展開します。
+このダイアグラムは、開発者がコードをリポジトリにプッシュすることで、GitHub Actionを使用した継続的インテグレーションプロセスがトリガーされることを示しています。継続的インテグレーションプロセスは、コードをビルドしてテストし、AWSの本番環境の両方に展開します。
 
-最終的に、利用者はVercelのUIコンポーネントを介してアプリケーションとやり取りし、Herokuの本番環境のAPIとデータベースコンポーネントと通信します。
+最終的に、利用者はAWSを介してアプリケーションとやり取りし、本番環境のAPIとデータベースコンポーネントと通信します。
 
 ## GitHubとは
 GitHubは、GitリポジトリをホストするためのWebベースのホスティングサービスです。GitHubを使用すると、コードを共有し、他の人と協力してプロジェクトを管理できます。
@@ -115,149 +107,17 @@ jobs:
 +
 . READMEにバッジを追加します。
 
-## Herokuとは
-Herokuは、クラウドプラットフォームであり、開発者がアプリケーションを構築、実行、スケールするためのツールを提供します。
+## AWSとは
 
-### Herokuにアプリをデプロイする手順
-#### Heroku アカウントの作成
-. link:https://www.heroku.com/[Heroku]にアクセスして、アカウントを作成します。
+AWS（Amazon Web Services）は、Amazon.comが提供するクラウドコンピューティングプラットフォームです。AWSは、コンピューティング、ストレージ、データベース、分析、ネットワーキング、モバイル、開発ツール、マネジメントツール、IoT、セキュリティ、アプリケーションサービスなど、さまざまなサービスを提供しています。
 
-#### Heroku CLI のインストール
-. link:https://devcenter.heroku.com/articles/heroku-cli[Heroku CLI]をダウンロードしてインストールします。
+### AWSにアプリをデプロイする手順
+#### AWS アカウントの作成
 
-#### Heroku アプリケーションの作成
-. Herokuにログインします。
-. `heroku create` コマンドを実行して、新しいアプリケーションを作成します。
-+
-[source,bash]
-----
-heroku create sample-project
-----
-+
-. HTTPサーバーを起動するために、パッケージをインストールして `Procfile` ファイルを作成します。
-+
-[source,bash]
-----
-npm install http-server
-----
-+
-[source,bash]
-----
-web: npx http-server -p $PORT
-----
-+
-package.jsonに以下の内容を追加します。
-+
-[source,json]
-----
-"scripts": {
-  ...
-  "heroku-postbuild": "webpack --config ./webpack.config.js --progress"
-  ...
-},
-----
+#### AWS CLI のインストール
+
+#### アプリケーションの作成
 
 #### アプリケーションのデプロイ
-. `git add .` コマンドを実行して、変更をステージングします。
-. `git commit -m "Initial commit"` コマンドを実行して、変更をコミットします。
-. `git push heroku master` コマンドを実行して、アプリケーションをデプロイします。
-+
-[source,bash]
-----
-git push heroku
-----
-+
-mainブランチ以外をデプロイする場合は以下のコマンドを実行します。
-+
-take01ブランチをデプロイする場合
-+
-[source,bash]
-----
-git push heroku take01:master
-----
-+
-別のアプリケーションを作ってデプロイする場合
-+
-[source,bash]
-----
-heroku create sample-project-take01
-----
-+
-`.git/config` に以下の内容を追加します。
-+
-[source,bash]
-----
-[remote "heroku-take01"]
-  url = https://git.heroku.com/sample-project-take01.git
-  fetch = +refs/heads/*:refs/remotes/heroku/*
-----
-+
-以下のコマンドを実行して別のアプリケーションにmain以外のブランチをデプロイします。
-+
-[source,bash]
-----
-git push heroku-take01 take01:master
-----
 
 #### アプリケーションの起動
-. `heroku open` コマンドを実行して、アプリケーションを起動します。
-
-## Vercelとは
-Vercelは、サーバーレスのプラットフォームで、フロントエンドの開発者が簡単にWebサイトやアプリケーションをデプロイできるようにするものです。
-
-### Vercelにデプロイする手順
-以下は、Vercelにデプロイする手順です。
-
-#### Vercelのサインアップ
-まず、Vercelにサインアップする必要があります。Vercelには、GitHub、GitLab、Bitbucket、またはVercelのアカウントでサインアップできます。
-
-#### ビルドコマンドの入力
-次に、アプリケーションのビルドコマンドを入力する必要があります。ビルドコマンドは、アプリケーションをビルドするために必要なコマンドです。
-
-#### 環境変数の設定(必要な場合)
-必要に応じて、環境変数を設定することができます。環境変数は、アプリケーションで使用される変数です。
-
-#### デプロイするブランチの選択
-次に、デプロイするブランチを選択する必要があります。通常、デプロイするブランチは、masterブランチです。
-
-#### デプロイの開始
-最後に、デプロイを開始する必要があります。デプロイが完了すると、VercelはURLを提供します。
-
-#### デプロイの確認
-デプロイが完了したら、Webサイトやアプリケーションを確認することができます。
-
-### VercelにCLIでデプロイする手順
-
-. Vercel CLIをインストールする
-Vercel CLIをインストールするには、ターミナルで以下のコマンドを実行します。
-+
-[source,bash]
-----
-npm install -g vercel
-----
-+
-. Vercelにログインする
-Vercel CLIを使用するには、Vercelにログインする必要があります。以下のコマンドを実行して、Vercelにログインしてください。
-+
-[source,bash]
-----
-vercel login
-----
-+
-. プロジェクトをデプロイする
-webpack.config.jsのビルドファイルの出力先をpublicに変更します。
-+
-[source,javascript]
-----
- output: {
-    path: __dirname + '/public',
-    filename: 'bundle.js'
-  },
-----
-+
-Vercel CLIを使用して、プロジェクトをデプロイするには、以下のコマンドを実行します。
-+
-[source,bash]
-----
-vercel
-----
