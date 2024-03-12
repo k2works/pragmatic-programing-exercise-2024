@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    key     = "stage/services/webserver-cluster/terraform.tfstate"
+    key     = "prod/services/webserver-cluster/terraform.tfstate"
     profile = "k2works-poc-202402"
   }
 }
