@@ -11,7 +11,7 @@ provider "aws" {
 }
 
 module "webserver-cluster" {
-  source                 = "../../../modules/services/webserver-cluster"
+  source                 = "github.com/k2works/pragmatic-programing-exercise-2024//src/1G/modules/services/webserver-cluster?ref=v0.0.1"
   cluster_name           = "webservers-stage"
   db_remote_state_bucket = "k2works-poc-202402-terraform-state"
   db_remote_state_key    = "stage/data-stores/mysql/terraform.tfstate"
