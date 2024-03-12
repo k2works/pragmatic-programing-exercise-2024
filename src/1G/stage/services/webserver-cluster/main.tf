@@ -19,3 +19,13 @@ module "webserver-cluster" {
   max_size               = 2
   min_size               = 2
 }
+
+resource "aws_security_group_rule" "allow_http_inbound" {
+  type              = "ingress"
+  security_group_id = module.webserver-cluster.alb_security_group_id
+
+  from_port   = 12345
+  to_port     = 12345
+  protocol    = "tcp"
+  cidr_blocks = ["0.0.0.0/0"]
+}
