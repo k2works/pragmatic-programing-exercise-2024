@@ -7,7 +7,7 @@ const contents = `
 ## TODOリスト
 
 - [x] Terraformをはじめよう
-- [ ] Terraformステートを管理する
+- [x] Terraformステートを管理する
 - [ ] モジュールで再利用可能なインフラを作る
 - [ ] 本番レベルのTerraformコード
 - [ ] Terraformのコードをテストする

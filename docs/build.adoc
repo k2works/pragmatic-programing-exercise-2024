@@ -1413,6 +1413,7 @@ Terraformを使い以下のアーキテクチャのインフラを構築しま�
 !include AWSPuml/Groups/AutoScalingGroup.puml
 !include AWSPuml/NetworkingContentDelivery/VPCNATGateway.puml
 !include AWSPuml/NetworkingContentDelivery/ElasticLoadBalancing.puml
+!include AWSPuml/Database/RDS.puml
 
 skinparam rectangle<<hidden>> {
 shadowing false
@@ -1427,6 +1428,7 @@ rectangle " " as $p_alias <<hidden>>
 AWSCloudGroup(cloud) {
 VPCGroup(vpc) {
     ElasticLoadBalancing(elb, "Elastic Load Balancing", "")
+    RDS(rds, "Amazon RDS", "")
 
     AvailabilityZoneGroup(az_2, "  Availability Zone 2") {
       EC2Instance(az_2_ec2_1, "Instance", "")
@@ -1447,6 +1449,12 @@ VPCGroup(vpc) {
     asg_1 -[dashed,$AWS_COLOR_SMILE]r- az_2_ec2_1
 
   }
+
+  elb - az_1_ec2_1
+  elb - az_2_ec2_1
+
+  rds -- az_1_ec2_1
+  rds -- az_2_ec2_1
 }
 @enduml
 ---
