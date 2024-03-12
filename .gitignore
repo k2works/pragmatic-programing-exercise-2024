@@ -112,3 +112,4 @@ lib
 .terraform
 *.tfstate
 *.tfstate.backup
+secret.tfvars

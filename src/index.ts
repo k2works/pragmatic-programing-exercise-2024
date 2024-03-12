@@ -34,6 +34,11 @@ const contents = `
 - terraform planを実行する
 - terraform applyを実行する
 
+### secret.tfvarsの使ったplan/apply
+
+- terraform plan --var-file=secret.tfvars
+- terraform apply --var-file=secret.tfvars
+
 ### 参照
 
 - [Terraform: Up & Running Code](https://github.com/brikis98/terraform-up-and-running-code/tree/master)

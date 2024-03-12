@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    key    = "global/s3/terraform.tfstate"
+    key    = "stage/services/webserver-cluster/terraform.tfstate"
     profile = "k2works-poc-202402"
   }
 }
@@ -17,11 +17,15 @@ resource "aws_launch_configuration" "example" {
     aws_security_group.instance.id
   ]
 
-  user_data = <<-EOF
-                #!/bin/bash
-                echo "Hello, World" > index.html
-                nohup python3 -m http.server ${var.server_port} &
-                EOF
+  user_data = templatefile("user-data.sh", {
+    server_port = var.server_port
+    db_address = data.terraform_remote_state.db.outputs.address
+    db_port = data.terraform_remote_state.db.outputs.port
+  })
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_autoscaling_group" "example" {
@@ -140,3 +144,13 @@ data "aws_subnets" "default" {
   }
 }
 
+data "terraform_remote_state" "db" {
+  backend = "s3"
+
+  config = {
+    bucket = "k2works-poc-202402-terraform-state"
+    key    = "stage/data-stores/mysql/terraform.tfstate"
+    region  = "ap-northeast-1"
+    profile = "k2works-poc-202402"
+  }
+}
