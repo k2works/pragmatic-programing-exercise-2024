@@ -26,6 +26,14 @@ const contents = `
 - [Install Terraform](https://developer.hashicorp.com/terraform/install?product_intent=terraform)
 - [Terraform CLI](https://github.com/tfutils/tfenv)
 
+### バックエンドを使った場合の削除&再セットアップ手順
+
+- backend設定を削除して terraform init -migrate-stateを実行する
+- terraform destroyを実行する
+- backend設定を追加して terraform init --backend-config=backend.hcl を実行する
+- terraform planを実行する
+- terraform applyを実行する
+
 ### 参照
 
 - [aws-icons-for-plantuml](https://github.com/awslabs/aws-icons-for-plantuml/tree/main)

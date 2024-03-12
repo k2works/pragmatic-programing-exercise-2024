@@ -40,11 +40,7 @@ resource "aws_dynamodb_table" "terraform_locks" {
 
 terraform {
   backend "s3" {
-    bucket = "k2works-poc-202402-terraform-state"
     key    = "global/s3/terraform.tfstate"
-    region = "ap-northeast-1"
-    dynamodb_table = "k2works-poc-202402-terraform-state-locks"
-    encrypt = true
     profile = "k2works-poc-202402"
   }
 }
