@@ -1397,6 +1397,7 @@ Terraformを使い以下のアーキテクチャのインフラを構築しま�
 
 [plantuml]
 ----
+@startuml
 'SPDX-License-Identifier: MIT (For details, see https://github.com/awslabs/aws-icons-for-plantuml/blob/master/LICENSE)
 
 ' Uncomment the line below for "dark mode" styling
@@ -1426,7 +1427,7 @@ rectangle " " as $p_alias <<hidden>>
 !endprocedure
 
 AWSCloudGroup(cloud) {
-VPCGroup(vpc) {
+VPCGroup(vpc, "Stag") {
     ElasticLoadBalancing(elb, "Elastic Load Balancing", "")
     RDS(rds, "Amazon RDS", "")
 
@@ -1455,6 +1456,36 @@ VPCGroup(vpc) {
 
   rds -- az_1_ec2_1
   rds -- az_2_ec2_1
+
+VPCGroup(vpc2, "Prod") {
+    ElasticLoadBalancing(elb2, "Elastic Load Balancing", "")
+    RDS(rds2, "Amazon RDS", "")
+
+    AvailabilityZoneGroup(az2_2, "  Availability Zone 2") {
+      EC2Instance(az2_2_ec2_1, "Instance", "")
+    }
+
+    LayoutRectangle(layout_rectangle2) {
+      EC2AutoScaling(ec2_auto_scaling2, "Amazon EC2 Auto Scaling", "")
+      AutoScalingGroupGroup(asg2_1)
+
+      ec2_auto_scaling2 -[hidden]d- asg2_1
+    }
+
+    AvailabilityZoneGroup(az2_1, "  Availability Zone 1") {
+      EC2Instance(az2_1_ec2_1, "Instance", "")
+    }
+
+    asg2_1 -[dashed,$AWS_COLOR_SMILE]l- az2_1_ec2_1
+    asg2_1 -[dashed,$AWS_COLOR_SMILE]r- az2_2_ec2_1
+
+  }
+
+  elb2 - az2_1_ec2_1
+  elb2 - az2_2_ec2_1
+
+  rds2 -- az2_1_ec2_1
+  rds2 -- az2_2_ec2_1
 }
 @enduml
----
+----

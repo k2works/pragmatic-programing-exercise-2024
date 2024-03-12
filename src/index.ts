@@ -8,7 +8,7 @@ const contents = `
 
 - [x] Terraformをはじめよう
 - [x] Terraformステートを管理する
-- [ ] モジュールで再利用可能なインフラを作る
+- [x] モジュールで再利用可能なインフラを作る
 - [ ] 本番レベルのTerraformコード
 - [ ] Terraformのコードをテストする
 
