@@ -36,6 +36,7 @@ const contents = `
 
 ### 参照
 
+- [Terraform: Up & Running Code](https://github.com/brikis98/terraform-up-and-running-code/tree/master)
 - [aws-icons-for-plantuml](https://github.com/awslabs/aws-icons-for-plantuml/tree/main)
 - [PlantUMLでできるだけきれいなAWS構成図を描く方法](https://qiita.com/sakai00kou/items/18e389fc85a8af59d9e0)
 
