@@ -1374,6 +1374,37 @@ aws configure --profile <profile-name>
 aws s3 ls --profile <profile-name>
 ----
 
+#### aws-vault のセットアップ
+
+. link:https://github.com/99designs/aws-vault#installing[aws-vault] をインストールしてください。
+. 以下のコマンドを実行して、aws-vault を確認してください。
++
+[source,bash]
+----
+aws-vault --version
+----
++
+. 以下のコマンドを実行して、aws-vault を設定してください。
++
+[source,bash]
+----
+aws-vault add <profile-name>
+aws-vault ls
+aws-vault exec <profile-name> -- aws s3 ls
+----
++
+. ~/.aws/config を編集して、aws-vault を aws-cli として使用できるようにします。
++
+[source,bash]
+----
+[<profile-name>]
+credential_process=aws-vault exec k2works-poc-202402 --json --prompt=wincredui
+----
++
+`--prompt=wincredui` はWindowsの場合のみ必要です。Macの場合は `--prompt=osascript` を使用します。
++
+. ~/.aws/credentials をから対象のプロファイルを削除します。
+
 ### インフラ開発ツールのセットアップ
 
 #### Terraformとは
@@ -1385,7 +1416,7 @@ Terraform は、インフラストラクチャをコードで管理するため�
 . link:https://learn.hashicorp.com/tutorials/terraform/install-cli[Terraform] をインストールしてください。
 . 以下のコマンドを実行して、Terraform を確認してください。
 +
-[source,bash]
+[source,text]
 ----
 terraform --version
 ----

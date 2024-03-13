@@ -41,11 +41,25 @@ const contents = `
 - terraform plan --var-file=secret.tfvars
 - terraform apply --var-file=secret.tfvars
 
+### aws-vaultの使い方
+
+- scoop install aws-vault
+- aws-vault add k2works-poc-202402
+- aws-vault ls
+- aws-vault exec k2works-poc-202402 -- aws s3 ls 
+- ~/.aws/config
+[profile k2works-poc-202402]
+credential_process=aws-vault exec k2works-poc-202402 --json --prompt=wincredui
+
+
 ### 参照
 
 - [Terraform: Up & Running Code](https://github.com/brikis98/terraform-up-and-running-code/tree/master)
 - [aws-icons-for-plantuml](https://github.com/awslabs/aws-icons-for-plantuml/tree/main)
 - [PlantUMLでできるだけきれいなAWS構成図を描く方法](https://qiita.com/sakai00kou/items/18e389fc85a8af59d9e0)
+- [aws-vault](https://github.com/99designs/aws-vault#installing)
+- [aws-vaultの使い方と仕組み](https://qiita.com/takuzo8679/items/6727f46b0aaf6df0a864#%E5%BE%93%E6%9D%A5%E9%80%9A%E3%82%8A%E3%81%AE%E3%82%B3%E3%83%9E%E3%83%B3%E3%83%89%E5%BD%A2%E5%BC%8F%E3%82%92%E5%8F%AF%E8%83%BD%E3%81%AB%E3%81%99%E3%82%8B%E6%96%B9%E6%B3%95)
+- [aws-vault を使って AWS のアクセスキーを暗号化して扱おう](https://blog.microcms.io/aws-vault-introduction/)
 
 `;
 
