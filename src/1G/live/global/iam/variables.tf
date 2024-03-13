@@ -25,3 +25,20 @@ variable "give_neo_cloudwatch_full_access" {
   type        = bool
   default     = true
 }
+
+variable "allowed_repos_branches" {
+  description = "GitHub repos/branches allowed to assume the IAM role."
+  type = list(object({
+    org    = string
+    repo   = string
+    branch = string
+  }))
+
+  default = [
+    {
+      org    = "k2works"
+      repo   = "pragmatic-programing-exercise-2024"
+      branch = "go/take01"
+    }
+  ]
+}
