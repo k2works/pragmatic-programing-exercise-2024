@@ -15,7 +15,7 @@ locals {
 }
 
 resource "aws_launch_configuration" "example" {
-  image_id      = "ami-039e8f15ccb15368a"
+  image_id      = var.ami
   instance_type = var.instance_type
   security_groups = [
     aws_security_group.instance.id
@@ -25,6 +25,7 @@ resource "aws_launch_configuration" "example" {
     server_port = var.server_port
     db_address  = data.terraform_remote_state.db.outputs.address
     db_port     = data.terraform_remote_state.db.outputs.port
+    server_text = var.server_text
   })
 
   lifecycle {
@@ -33,6 +34,8 @@ resource "aws_launch_configuration" "example" {
 }
 
 resource "aws_autoscaling_group" "example" {
+  name = "${var.cluster_name}-${aws_launch_configuration.example.name}"
+
   launch_configuration = aws_launch_configuration.example.name
   vpc_zone_identifier  = data.aws_subnets.default.ids
 
@@ -41,6 +44,12 @@ resource "aws_autoscaling_group" "example" {
 
   min_size = var.min_size
   max_size = var.max_size
+
+  min_elb_capacity = var.min_size
+
+  lifecycle {
+    create_before_destroy = true
+  }
 
   tag {
     key                 = "Name"
@@ -60,10 +69,6 @@ resource "aws_autoscaling_group" "example" {
       value               = tag.value
       propagate_at_launch = true
     }
-  }
-
-  lifecycle {
-    create_before_destroy = true
   }
 }
 
