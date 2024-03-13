@@ -12,6 +12,10 @@ provider "aws" {
   region = "ap-northeast-1"
 }
 
+locals {
+  db_cred = jsondecode(data.aws_secretsmanager_secret_version.creds.secret_string)
+}
+
 resource "aws_db_instance" "example" {
   identifier_prefix   = "terraform-up-and-running"
   engine              = "mysql"
@@ -20,6 +24,10 @@ resource "aws_db_instance" "example" {
   skip_final_snapshot = true
   db_name             = "example_database"
 
-  username = var.db_username
-  password = var.db_password
+  username = local.db_cred.username
+  password = local.db_cred.password
+}
+
+data "aws_secretsmanager_secret_version" "creds" {
+  secret_id = "db-creds"
 }

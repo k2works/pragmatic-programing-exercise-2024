@@ -1405,6 +1405,10 @@ credential_process=aws-vault exec k2works-poc-202402 --json --prompt=wincredui
 +
 . ~/.aws/credentials をから対象のプロファイルを削除します。
 
+#### AWS Secrets Manager のセットアップ
+
+. link:https://docs.aws.amazon.com/ja_jp/secretsmanager/latest/userguide/getting-started.html[AWS Secrets Manager] を使用して、シークレットを作成してください。
+
 ### インフラ開発ツールのセットアップ
 
 #### Terraformとは
