@@ -2,8 +2,7 @@ terraform {
 }
 
 provider "aws" {
-  region  = "ap-northeast-1"
-  profile = "k2works-poc-202402"
+  region = "ap-northeast-1"
 }
 
 locals {
@@ -199,9 +198,8 @@ data "terraform_remote_state" "db" {
   backend = "s3"
 
   config = {
-    bucket  = var.db_remote_state_bucket
-    key     = var.db_remote_state_key
-    region  = "ap-northeast-1"
-    profile = "k2works-poc-202402"
+    bucket = var.db_remote_state_bucket
+    key    = var.db_remote_state_key
+    region = "ap-northeast-1"
   }
 }

@@ -1,7 +1,6 @@
 terraform {
   backend "s3" {
-    key     = "global/iam/terraform.tfstate"
-    profile = "k2works-poc-202402"
+    key = "global/iam/terraform.tfstate"
   }
 }
 
@@ -85,10 +84,36 @@ data "aws_iam_policy_document" "assume_role_policy" {
 
     condition {
       test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
       values = [
-        for a in var.allowed_repos_branches : "repo:${a["org"]}/${a["repo"]}:ref:refs/heads/${a["branch"]}"
+        for a in var.allowed_repos_branches : "repo:${a["org"]}/${a["repo"]}:*"
       ]
     }
   }
+}
+
+resource "aws_iam_role" "example" {
+  name               = "example-role"
+  assume_role_policy = data.aws_iam_policy_document.assume_role_policy.json
+}
+
+resource "aws_iam_role_policy_attachment" "s3-full-access" {
+  role       = aws_iam_role.example.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+}
+
+resource "aws_iam_role_policy_attachment" "dynamodb-full-access" {
+  role       = aws_iam_role.example.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"
+}
+
+resource "aws_iam_role_policy_attachment" "ec2-full-access" {
+  role       = aws_iam_role.example.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2FullAccess"
 }

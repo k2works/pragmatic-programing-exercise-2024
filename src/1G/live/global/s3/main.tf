@@ -1,7 +1,6 @@
 terraform {
   backend "s3" {
-    key     = "global/s3/terraform.tfstate"
-    profile = "k2works-poc-202402"
+    key = "global/s3/terraform.tfstate"
   }
 }
 

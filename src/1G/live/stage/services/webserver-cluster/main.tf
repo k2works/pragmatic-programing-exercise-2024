@@ -1,13 +1,11 @@
 terraform {
   backend "s3" {
-    key     = "stage/services/webserver-cluster/terraform.tfstate"
-    profile = "k2works-poc-202402"
+    key = "stage/services/webserver-cluster/terraform.tfstate"
   }
 }
 
 provider "aws" {
-  region  = "ap-northeast-1"
-  profile = "k2works-poc-202402"
+  region = "ap-northeast-1"
 }
 
 module "webserver-cluster" {

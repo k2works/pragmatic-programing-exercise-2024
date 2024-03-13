@@ -51,6 +51,12 @@ const contents = `
 [profile k2works-poc-202402]
 credential_process=aws-vault exec k2works-poc-202402 --json --prompt=wincredui
 
+### AWS CLIで環境変数を使ってプロファイルを設定する
+
+- $env:AWS_PROFILE="k2works-poc-202402" or export AWS_PROFILE=k2works-poc-202402
+- aws s3 ls
+- terraform init -backend-config="backend.hcl"
+
 
 ### 参照
 
@@ -60,6 +66,8 @@ credential_process=aws-vault exec k2works-poc-202402 --json --prompt=wincredui
 - [aws-vault](https://github.com/99designs/aws-vault#installing)
 - [aws-vaultの使い方と仕組み](https://qiita.com/takuzo8679/items/6727f46b0aaf6df0a864#%E5%BE%93%E6%9D%A5%E9%80%9A%E3%82%8A%E3%81%AE%E3%82%B3%E3%83%9E%E3%83%B3%E3%83%89%E5%BD%A2%E5%BC%8F%E3%82%92%E5%8F%AF%E8%83%BD%E3%81%AB%E3%81%99%E3%82%8B%E6%96%B9%E6%B3%95)
 - [aws-vault を使って AWS のアクセスキーを暗号化して扱おう](https://blog.microcms.io/aws-vault-introduction/)
+- [GitHub ActionsをOIDCでAWS認証してTerraformを実行する](https://anikitech.com/github-actions-terraform-by-oidc/)
+- [Terraformでクレデンシャルを読み込む方法あれこれ](https://qiita.com/Hikosaburou/items/1d3765d85d5398e3763f)
 
 `;
 

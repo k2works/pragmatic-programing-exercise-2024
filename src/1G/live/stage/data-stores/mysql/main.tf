@@ -5,13 +5,11 @@ terraform {
     region         = "ap-northeast-1"
     dynamodb_table = "k2works-poc-202402-terraform-state-locks"
     encrypt        = true
-    profile        = "k2works-poc-202402"
   }
 }
 
 provider "aws" {
-  region  = "ap-northeast-1"
-  profile = "k2works-poc-202402"
+  region = "ap-northeast-1"
 }
 
 resource "aws_db_instance" "example" {
