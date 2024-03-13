@@ -46,7 +46,7 @@ name: 'Terraform'
 
 on:
   push:
-    branches: [ "go/take01" ]
+    branches: [ "go/take0X" ]
   pull_request:
 
 permissions:

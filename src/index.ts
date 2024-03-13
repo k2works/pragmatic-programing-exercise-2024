@@ -10,7 +10,7 @@ const contents = `
 - [x] Terraformステートを管理する
 - [x] モジュールで再利用可能なインフラを作る
 - [x] Terraformを使うためのヒントとコツ
-- [ ] シークレットを管理する
+- [x] シークレットを管理する
 - [ ] 本番レベルのTerraformコード
 - [ ] Terraformのコードをテストする
 

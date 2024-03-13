@@ -6,16 +6,118 @@
 
 # 開発
 
-## 仕様
+## アーキテクチャ
 
-## ユースケース
+Terraformを使い以下のアーキテクチャのインフラを構築します。
 
-## ユーザーインターフェース
+[plantuml]
+----
+@startuml
+'SPDX-License-Identifier: MIT (For details, see https://github.com/awslabs/aws-icons-for-plantuml/blob/master/LICENSE)
 
-### モデル
+' Uncomment the line below for "dark mode" styling
+'!$AWS_DARK = true
 
-### インタラクション
+!define AWSPuml https://raw.githubusercontent.com/awslabs/aws-icons-for-plantuml/v17.0/dist
+!include AWSPuml/AWSCommon.puml
+!include AWSPuml/AWSSimplified.puml
+!include AWSPuml/Compute/EC2AutoScaling.puml
+!include AWSPuml/Compute/EC2Instance.puml
+!include AWSPuml/Groups/AWSCloud.puml
+!include AWSPuml/Groups/AvailabilityZone.puml
+!include AWSPuml/Groups/VPC.puml
+!include AWSPuml/Groups/AutoScalingGroup.puml
+!include AWSPuml/NetworkingContentDelivery/VPCNATGateway.puml
+!include AWSPuml/NetworkingContentDelivery/ElasticLoadBalancing.puml
+!include AWSPuml/Database/RDS.puml
 
-## オブジェクトモデル
+skinparam rectangle<<hidden>> {
+shadowing false
+BackgroundColor transparent
+BorderColor transparent
+}
 
-## データモデル
+!unquoted procedure LayoutRectangle($p_alias)
+rectangle " " as $p_alias <<hidden>>
+!endprocedure
+
+AWSCloudGroup(cloud) {
+VPCGroup(vpc, "Stag") {
+    ElasticLoadBalancing(elb, "Elastic Load Balancing", "")
+    RDS(rds, "Amazon RDS", "")
+
+    AvailabilityZoneGroup(az_2, "  Availability Zone 2") {
+      EC2Instance(az_2_ec2_1, "Instance", "")
+    }
+
+    LayoutRectangle(layout_rectangle) {
+      EC2AutoScaling(ec2_auto_scaling, "Amazon EC2 Auto Scaling", "")
+      AutoScalingGroupGroup(asg_1)
+
+      ec2_auto_scaling -[hidden]d- asg_1
+    }
+
+    AvailabilityZoneGroup(az_1, "  Availability Zone 1") {
+      EC2Instance(az_1_ec2_1, "Instance", "")
+    }
+
+    asg_1 -[dashed,$AWS_COLOR_SMILE]l- az_1_ec2_1
+    asg_1 -[dashed,$AWS_COLOR_SMILE]r- az_2_ec2_1
+
+  }
+
+  elb - az_1_ec2_1
+  elb - az_2_ec2_1
+
+  rds -- az_1_ec2_1
+  rds -- az_2_ec2_1
+
+VPCGroup(vpc2, "Prod") {
+    ElasticLoadBalancing(elb2, "Elastic Load Balancing", "")
+    RDS(rds2, "Amazon RDS", "")
+
+    AvailabilityZoneGroup(az2_2, "  Availability Zone 2") {
+      EC2Instance(az2_2_ec2_1, "Instance", "")
+    }
+
+    LayoutRectangle(layout_rectangle2) {
+      EC2AutoScaling(ec2_auto_scaling2, "Amazon EC2 Auto Scaling", "")
+      AutoScalingGroupGroup(asg2_1)
+
+      ec2_auto_scaling2 -[hidden]d- asg2_1
+    }
+
+    AvailabilityZoneGroup(az2_1, "  Availability Zone 1") {
+      EC2Instance(az2_1_ec2_1, "Instance", "")
+    }
+
+    asg2_1 -[dashed,$AWS_COLOR_SMILE]l- az2_1_ec2_1
+    asg2_1 -[dashed,$AWS_COLOR_SMILE]r- az2_2_ec2_1
+
+  }
+
+  elb2 - az2_1_ec2_1
+  elb2 - az2_2_ec2_1
+
+  rds2 -- az2_1_ec2_1
+  rds2 -- az2_2_ec2_1
+}
+@enduml
+----
+
+## インフラ構成
+
+- インストール　ソフトウェアバイナリとその依存関係のインストール
+- 設定 ソフトウェア実行時の設定。ポート設定、TLS証明書、サービスディスカバリ、リーダ、フォロワ、レプリケーションなど
+- プロビジョニング　インフラのプロビジョニング。サーバ、ロードバランサ、ネットワーク設定、ファイアウォール設定、IAMパーミッションなど
+- デプロイ インフラへのサービスのデプロイ。ダウンタイムなしでの更新の展開。ブルーグリーンデプロイ、ローリングデプロイ、カナリアデプロイなど
+- 高可用性 各プロセス、サーバ、サービス、データセンタ、リージョンの障害への対抗
+- スケーラビリティ 負荷に対するスケールアップとスケールダウン。水平スケール（サーバーを増やす）と垂直スケール（サーバを大きくする）
+- パフォーマンス CPU、メモリ、ディスク、ネットワーク、GPUの使用の最適化。クエリチューニング、ベンチマーク、負荷テスト、プロファイリング
+- ネットワーク 静的または動的なIPアドレス、ポート、サービスディスカバリ、ファイアウォール、DNS、SSHアクセス、VPNアクセスの設定
+- セキュリティ 通信時（TLS）およびディスク上の暗号化、認証、認可、シークレット管理、サーバハードにング
+- メトリクス 可用性メトリクス、ビジネスメトリクス、アプリケーションメトリクス、サーバメトリクス、イベント、オブサーバビリティ、トレーシング、アラート
+- ログ ディスク上でのログローテート。ログデータの１箇所への集約
+- データバックアップ DB,キャッシュなどの定期的なバックアップ。別リージョンやアカウントへの複製
+- コスト最適化 正しいインスタンスタイプの選択、スポットインスタンスやリザーブドインスタンスの使用、オートスケールの使用、使用していないリソースの削除
+
