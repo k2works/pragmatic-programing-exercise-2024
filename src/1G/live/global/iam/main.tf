@@ -6,7 +6,6 @@ terraform {
 
 provider "aws" {
   region  = "ap-northeast-1"
-  profile = "k2works-poc-202402"
 }
 
 resource "aws_iam_user" "example" {

@@ -50,6 +50,7 @@ const contents = `
 - ~/.aws/config
 [profile k2works-poc-202402]
 credential_process=aws-vault exec k2works-poc-202402 --json --prompt=wincredui
+- aws-vault exec k2works-poc-202402 -- terraform apply
 
 ### AWS CLIで環境変数を使ってプロファイルを設定する
 
@@ -68,6 +69,8 @@ credential_process=aws-vault exec k2works-poc-202402 --json --prompt=wincredui
 - [aws-vault を使って AWS のアクセスキーを暗号化して扱おう](https://blog.microcms.io/aws-vault-introduction/)
 - [GitHub ActionsをOIDCでAWS認証してTerraformを実行する](https://anikitech.com/github-actions-terraform-by-oidc/)
 - [Terraformでクレデンシャルを読み込む方法あれこれ](https://qiita.com/Hikosaburou/items/1d3765d85d5398e3763f)
+- [AWS Vaultで端末内のAWSアクセスキー平文保存をやめてみた](https://dev.classmethod.jp/articles/aws-vault/)
+- [aws-vaultでcliとterraformをいい感じにしてみる](https://dev.classmethod.jp/articles/awsvault_config/)
 
 `;
 
