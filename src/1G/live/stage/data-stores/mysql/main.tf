@@ -16,16 +16,13 @@ locals {
   db_cred = jsondecode(data.aws_secretsmanager_secret_version.creds.secret_string)
 }
 
-resource "aws_db_instance" "example" {
-  identifier_prefix   = "terraform-up-and-running"
-  engine              = "mysql"
-  allocated_storage   = 10
-  instance_class      = "db.t2.micro"
-  skip_final_snapshot = true
-  db_name             = "example_database"
+module "mysql" {
+  source = "../../../../modules/data-source/mysql"
 
-  username = local.db_cred.username
-  password = local.db_cred.password
+  db_name = "example_database"
+
+  db_username = local.db_cred.username
+  db_password = local.db_cred.password
 }
 
 data "aws_secretsmanager_secret_version" "creds" {
