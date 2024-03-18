@@ -10,14 +10,14 @@ variable "db_remote_state_key" {
   default     = "stage/data-stores/mysql/terraform.tfstate"
 }
 
-variable "server_text" {
-  description = "The text the web server should return"
-  default     = "Hello, World"
-  type        = string
-}
-
 variable "environment" {
   description = "The name of the environment we're deploying to"
   type        = string
   default     = "stage"
+}
+
+variable "server_text" {
+  description = "The text the web server should return"
+  default     = "Hello, World"
+  type        = string
 }

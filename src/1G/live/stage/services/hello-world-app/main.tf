@@ -2,8 +2,8 @@ terraform {
   required_version = ">= 1.0.0, < 2.0.0"
 
   backend "s3" {
-    key = "prod/services/webserver-cluster/terraform.tfstate"
   }
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -11,7 +11,6 @@ terraform {
     }
   }
 }
-
 provider "aws" {
   region = "ap-northeast-1"
 }
@@ -22,8 +21,8 @@ module "hello_world_app" {
   server_text = var.server_text
 
   environment            = var.environment
-  db_remote_state_bucket = "k2works-poc-202402-terraform-state"
-  db_remote_state_key    = "stage/data-stores/mysql/terraform.tfstate"
+  db_remote_state_bucket = var.db_remote_state_bucket
+  db_remote_state_key    = var.db_remote_state_key
 
   instance_type      = "t2.micro"
   max_size           = 2
