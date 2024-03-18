@@ -6,7 +6,6 @@ variable "cluster_name" {
 variable "ami" {
   description = "The AMI to run in the cluster"
   type        = string
-  default     = "ami-039e8f15ccb15368a"
 }
 
 variable "instance_type" {
@@ -29,6 +28,18 @@ variable "subnet_ids" {
   type        = list(string)
 }
 
+variable "target_group_arns" {
+  description = "The ARNs of ELB target groups in which to register Instances"
+  type        = list(string)
+  default     = []
+}
+
+variable "user_data" {
+  description = "The User Data script to run in each Instance at boot"
+  type        = string
+  default     = null
+}
+
 variable "enable_autoscaling" {
   description = "If set to true, enable auto scaling"
   type        = bool
@@ -46,14 +57,3 @@ variable "server_port" {
   default     = 8080
 }
 
-variable "user_data" {
-  description = "The User Data script to run in each Instance at boot"
-  type        = string
-  default     = null
-}
-
-variable "target_group_arns" {
-  description = "The ARNs of ELB target groups in which to register Instances"
-  type        = list(string)
-  default     = []
-}

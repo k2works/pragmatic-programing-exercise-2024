@@ -63,7 +63,7 @@ jobs:
     defaults:
       run:
         shell: bash
-        working-directory: ./src/1G/live/stage/services/webserver-cluster
+        working-directory: ./src/1G/live/stage/services/hello-world-app
 
     steps:
       # Checkout the repository to the GitHub Actions runner
