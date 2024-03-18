@@ -1,12 +1,19 @@
 terraform {
+  required_version = ">= 1.0.0, < 2.0.0"
+
   backend "s3" {
     key = "global/s3/terraform.tfstate"
+  }
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
   }
 }
 
 provider "aws" {
-  region  = "ap-northeast-1"
-  profile = "k2works-poc-202402"
+  region = "ap-northeast-1"
 }
 
 resource "aws_s3_bucket" "terraform_state" {

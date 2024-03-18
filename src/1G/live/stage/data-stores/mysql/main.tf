@@ -1,4 +1,6 @@
 terraform {
+  required_version = ">= 1.0.0, < 2.0.0"
+
   backend "s3" {
     bucket         = "k2works-poc-202402-terraform-state"
     key            = "stage/data-stores/mysql/terraform.tfstate"
@@ -6,7 +8,16 @@ terraform {
     dynamodb_table = "k2works-poc-202402-terraform-state-locks"
     encrypt        = true
   }
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
 }
+
+
 
 provider "aws" {
   region = "ap-northeast-1"
