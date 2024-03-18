@@ -8,12 +8,12 @@ provider "aws" {
   region = "ap-northeast-1"
 }
 
-module "webserver-cluster" {
+module "hello_world_app" {
   source = "../../../../modules/services/hello-world-app"
 
-  ami                    = "ami-039e8f15ccb15368a"
-  server_text            = "New server text"
-  cluster_name           = "webservers-stage"
+  server_text = var.server_text
+
+  environment            = var.environment
   db_remote_state_bucket = "k2works-poc-202402-terraform-state"
   db_remote_state_key    = "stage/data-stores/mysql/terraform.tfstate"
 
@@ -21,14 +21,27 @@ module "webserver-cluster" {
   max_size           = 2
   min_size           = 2
   enable_autoscaling = false
+  ami                = data.aws_ami.amazonlinux.id
 }
 
-resource "aws_security_group_rule" "allow_http_inbound" {
-  type              = "ingress"
-  security_group_id = module.webserver-cluster.alb_security_group_id
+data "aws_ami" "amazonlinux" {
+  most_recent = true
+  owners      = ["amazon"]
 
-  from_port   = 12345
-  to_port     = 12345
-  protocol    = "tcp"
-  cidr_blocks = ["0.0.0.0/0"]
+  filter {
+    name   = "name"
+    values = ["amzn-ami-hvm-*"]
+  }
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+  filter {
+    name   = "root-device-type"
+    values = ["ebs"]
+  }
+  filter {
+    name   = "architecture"
+    values = ["x86_64"]
+  }
 }

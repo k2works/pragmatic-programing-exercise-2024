@@ -23,7 +23,7 @@ resource "aws_autoscaling_group" "example" {
   launch_configuration = aws_launch_configuration.example.name
   vpc_zone_identifier  = var.subnet_ids
   target_group_arns    = var.target_group_arns
-  health_check_type    = "ELB"
+  health_check_type    = var.health_check_type
 
   min_size = var.min_size
   max_size = var.max_size

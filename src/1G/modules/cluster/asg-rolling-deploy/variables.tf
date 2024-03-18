@@ -34,6 +34,12 @@ variable "target_group_arns" {
   default     = []
 }
 
+variable "health_check_type" {
+  description = "The type of health check to perform. Must be one of: EC2, ELB."
+  type        = string
+  default     = "EC2"
+}
+
 variable "user_data" {
   description = "The User Data script to run in each Instance at boot"
   type        = string
