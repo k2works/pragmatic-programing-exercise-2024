@@ -15,6 +15,10 @@ resource "aws_launch_configuration" "example" {
 
   lifecycle {
     create_before_destroy = true
+    precondition {
+      condition     = data.aws_ec2_instance_type.instance.free_tier_eligible
+      error_message = "${var.instance_type} is not part of the AWS Free Tier"
+    }
   }
 }
 
@@ -24,6 +28,13 @@ resource "aws_autoscaling_group" "example" {
   vpc_zone_identifier  = var.subnet_ids
   target_group_arns    = var.target_group_arns
   health_check_type    = var.health_check_type
+
+  lifecycle {
+    postcondition {
+      condition     = length(self.availability_zones) > 1
+      error_message = "You must use more than one AZ for high availability!"
+    }
+  }
 
   min_size = var.min_size
   max_size = var.max_size
