@@ -49,9 +49,8 @@ data "aws_ami" "amazonlinux" {
 }
 
 locals {
-  project_name           = module.var.project_name
-  app_name               = module.var.app_name
-  environment            = module.var.env.stage
-  db_remote_state_bucket = module.var.remote_state_bucket
-  db_remote_state_key    = "stage/${module.var.db_remote_state_key}"
+  app_name               = var.integration_test ? "${module.var.app_name}-${var.app_name}" : module.var.app_name
+  environment            = var.integration_test ? module.var.env.test : module.var.env.stage
+  db_remote_state_bucket = var.integration_test ? var.db_remote_state_bucket : module.var.remote_state_bucket
+  db_remote_state_key    = var.integration_test ? var.db_remote_state_key : "stage/${module.var.db_remote_state_key}"
 }

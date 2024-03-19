@@ -23,3 +23,9 @@ variable "use_cred" {
   type        = bool
   default     = true
 }
+
+variable "integration_test" {
+  description = "Whether to run integration tests"
+  type        = bool
+  default     = false
+}

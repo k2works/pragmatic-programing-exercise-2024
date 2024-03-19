@@ -34,8 +34,8 @@ data "aws_secretsmanager_secret_version" "creds" {
 }
 
 locals {
-  db_prefix = "${module.var.app_name}-${module.var.env.stage}"
-  db_name   = "${module.var.db_name}_${module.var.env.stage}"
+  db_prefix = var.integration_test ? "${module.var.app_name}-${module.var.generation}-${module.var.env.test}" : "${module.var.app_name}-${module.var.generation}-${module.var.env.stage}"
+  db_name   = var.integration_test ? "${var.db_name}_${module.var.env.test}" : "${module.var.db_name}_${module.var.env.stage}"
   db_cred   = jsondecode(data.aws_secretsmanager_secret_version.creds.secret_string)
 }
 
