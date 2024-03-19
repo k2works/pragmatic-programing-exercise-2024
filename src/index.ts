@@ -58,6 +58,14 @@ credential_process=aws-vault exec k2works-poc-202402 --json --prompt=wincredui
 - aws s3 ls
 - terraform init -backend-config="backend.hcl"
 
+### 1Gから2Gに移行する
+
+- 2G用のs3バケットを作成するステータス管理はローカルで行うこと
+- 2Gの環境を構築する
+- 1G用のs3バケットを削除するバックエンドがs3の場合はterraform init --backend-config=backend.hcl -migrate-state でバックエンドをローカルに変更すること
+- 1Gのs3バケットを空にする
+- 1Gのterraform destroyを実行する
+
 
 ### 参照
 

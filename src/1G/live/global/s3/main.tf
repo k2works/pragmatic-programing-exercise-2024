@@ -1,9 +1,6 @@
 terraform {
   required_version = ">= 1.0.0, < 2.0.0"
 
-  backend "s3" {
-    key = "global/s3/terraform.tfstate"
-  }
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -20,7 +17,7 @@ resource "aws_s3_bucket" "terraform_state" {
   bucket = "k2works-poc-202402-terraform-state"
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
