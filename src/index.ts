@@ -66,6 +66,13 @@ credential_process=aws-vault exec k2works-poc-202402 --json --prompt=wincredui
 - 1Gのs3バケットを空にする
 - 1Gのterraform destroyを実行する
 
+### 環境廃棄の手順
+
+- live/stage内のリソースを terraform destroy で削除する
+- live/prod内のリソースを terraform destroy で削除する
+- ステータス管理用のs3バケットを空にする
+- ステータス管理用のs3バケットを terraform destroy で削除する
+
 
 ### 参照
 
