@@ -5,6 +5,7 @@ import (
 	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/gruntwork-io/terratest/modules/terraform"
+	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
 	"strings"
 	"testing"
 	"time"
@@ -92,4 +93,50 @@ func validateHelloApp(t *testing.T, helloOpts *terraform.Options) {
 			return status == 200 && strings.Contains(body, "Hello, World!")
 		},
 	)
+}
+
+func TestHelloWorldAppStageWithStages(t *testing.T) {
+	t.Parallel()
+
+	stage := test_structure.RunTestStage
+
+	defer stage(t, "teardown_db", func() { teardownDb(t, dbDirStage) })
+	stage(t, "deploy_db", func() { deployDb(t, dbDirStage) })
+
+	defer stage(t, "teardown_app", func() { teardownApp(t, appDirStage) })
+	stage(t, "deploy_app", func() { deployApp(t, dbDirStage, appDirStage) })
+
+	stage(t, "validate_app", func() { validateApp(t, appDirStage) })
+}
+
+func validateApp(t *testing.T, helloAppDir string) {
+	helloOpts := test_structure.LoadTerraformOptions(t, helloAppDir)
+	validateHelloApp(t, helloOpts)
+}
+
+func teardownDb(t *testing.T, dbDir string) {
+	dbOpts := test_structure.LoadTerraformOptions(t, dbDir)
+	defer terraform.Destroy(t, dbOpts)
+}
+
+func deployDb(t *testing.T, dbDir string) {
+	dbOpts := createDbOpts(t, dbDir)
+
+	test_structure.SaveTerraformOptions(t, dbDir, dbOpts)
+
+	terraform.InitAndApply(t, dbOpts)
+}
+
+func teardownApp(t *testing.T, helloAppDir string) {
+	helloOpts := test_structure.LoadTerraformOptions(t, helloAppDir)
+	defer terraform.Destroy(t, helloOpts)
+}
+
+func deployApp(t *testing.T, dbDir string, helloAppDir string) {
+	dbOpts := test_structure.LoadTerraformOptions(t, dbDir)
+	helloOpts := createHelloOpts(dbOpts, helloAppDir)
+
+	test_structure.SaveTerraformOptions(t, helloAppDir, helloOpts)
+
+	terraform.InitAndApply(t, helloOpts)
 }

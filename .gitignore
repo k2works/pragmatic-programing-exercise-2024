@@ -113,3 +113,4 @@ lib
 *.tfstate
 *.tfstate.backup
 secret.tfvars
+.test-data
