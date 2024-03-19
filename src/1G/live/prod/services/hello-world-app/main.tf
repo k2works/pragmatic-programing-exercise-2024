@@ -19,11 +19,12 @@ provider "aws" {
 module "hello_world_app" {
   source = "../../../../modules/services/hello-world-app"
 
-  server_text = var.server_text
-
+  server_text            = var.server_text
   environment            = var.environment
-  db_remote_state_bucket = "k2works-poc-202402-terraform-state"
-  db_remote_state_key    = "stage/data-stores/mysql/terraform.tfstate"
+  db_remote_state_bucket = var.db_remote_state_bucket
+  db_remote_state_key    = var.db_remote_state_key
+  //先にRDSを削除した場合はこちらを有効にしてdestroyする
+  //mysql_config = var.mysql_config
 
   instance_type      = "t2.micro"
   max_size           = 2
@@ -38,18 +39,6 @@ data "aws_ami" "amazonlinux" {
 
   filter {
     name   = "name"
-    values = ["amzn-ami-hvm-*"]
-  }
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-  filter {
-    name   = "root-device-type"
-    values = ["ebs"]
-  }
-  filter {
-    name   = "architecture"
-    values = ["x86_64"]
+    values = ["al2023-ami-*"]
   }
 }
