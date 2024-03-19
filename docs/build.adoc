@@ -6,7 +6,7 @@
 
 # 構築
 
-## 開発環境の構築
+## アプリケーション開発環境の構築
 
 JavaScript 開発環境を構築するためには、以下の手順を実行してください。
 
@@ -1342,4 +1342,87 @@ declare global {
   }
 }
 ----
+
+## インフラ開発環境の構築
+
+AWS(Amazon Web Service) を使用することで、インフラ環境を構築することができます。以下の手順でインフラ環境を構築してください。
+
+### インフラ環境のセットアップ
+
+#### AWSアカウントのセットアップ
+
+. AWS アカウントを作成してください。
+. AWS 組織アカウントを作成してください。
+. AWS 組織アカウントのマネジメントコンソールにログインしてください。
+. セキュリティ認証情報メニューからユーザーを作成してください。
+. ユーザーからアクセスキーを作成してください。
+
+#### AWS CLI のセットアップ
+
+. link:https://docs.aws.amazon.com/ja_jp/cli/latest/userguide/getting-started-install.html[AWS CLI] をインストールしてください。
+. 以下のコマンドを実行してプロファイルを作成してください
++
+[source,bash]
+----
+aws configure --profile <profile-name>
+----
++
+. 以下のコマンドを実行して、プロファイルを確認してください。
++
+[source,bash]
+----
+aws s3 ls --profile <profile-name>
+----
+
+#### aws-vault のセットアップ
+
+. link:https://github.com/99designs/aws-vault#installing[aws-vault] をインストールしてください。
+. 以下のコマンドを実行して、aws-vault を確認してください。
++
+[source,bash]
+----
+aws-vault --version
+----
++
+. 以下のコマンドを実行して、aws-vault を設定してください。
++
+[source,bash]
+----
+aws-vault add <profile-name>
+aws-vault ls
+aws-vault exec <profile-name> -- aws s3 ls
+----
++
+. ~/.aws/config を編集して、aws-vault を aws-cli として使用できるようにします。
++
+[source,bash]
+----
+[<profile-name>]
+credential_process=aws-vault exec k2works-poc-202402 --json --prompt=wincredui
+----
++
+`--prompt=wincredui` はWindowsの場合のみ必要です。Macの場合は `--prompt=osascript` を使用します。
++
+. ~/.aws/credentials をから対象のプロファイルを削除します。
+
+#### AWS Secrets Manager のセットアップ
+
+. link:https://docs.aws.amazon.com/ja_jp/secretsmanager/latest/userguide/getting-started.html[AWS Secrets Manager] を使用して、シークレットを作成してください。
+
+### インフラ開発ツールのセットアップ
+
+#### Terraformとは
+
+Terraform は、インフラストラクチャをコードで管理するためのツールです。以下の手順で Terraform をセットアップしてください。
+
+#### Terraformのセットアップ
+
+. link:https://learn.hashicorp.com/tutorials/terraform/install-cli[Terraform] をインストールしてください。
+. 以下のコマンドを実行して、Terraform を確認してください。
++
+[source,text]
+----
+terraform --version
+----
+. Windows環境以外では link:https://github.com/tfutils/tfenv[tfenv] を使用してTerraformのバージョンを管理することをお勧めします。
 

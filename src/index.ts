@@ -4,9 +4,89 @@ const app = new App();
 
 const dev = require("@k2works/full-stack-lab");
 const contents = `
-## 機能名
 ## TODOリスト
-## 仕様
+
+- [x] Terraformをはじめよう
+- [x] Terraformステートを管理する
+- [x] モジュールで再利用可能なインフラを作る
+- [x] Terraformを使うためのヒントとコツ
+- [x] シークレットを管理する
+- [x] 本番レベルのTerraformコード
+- [x] Terraformのコードをテストする
+
+### AWSアカウントのセットアップ
+
+- 開発組織アカウントを作る
+- アクセスキーを作成する(コマンドラインインターフェース)
+- [AWS CLIのインストール](https://docs.aws.amazon.com/ja_jp/cli/latest/userguide/getting-started-install.html)
+- [aws-shellのインストール](https://github.com/awslabs/aws-shell)
+- [プロファイルの作成](https://qiita.com/shonansurvivors/items/1fb53a2d3b8dddab6629)
+- 動作確認(aws s3 ls --profile dev)
+
+### Terraformのインストール
+
+- [Install Terraform](https://developer.hashicorp.com/terraform/install?product_intent=terraform)
+- [Terraform CLI](https://github.com/tfutils/tfenv)
+
+### バックエンドを使った場合の削除&再セットアップ手順
+
+- backend設定を削除して terraform init -migrate-stateを実行する
+- terraform destroyを実行する
+- backend設定を追加して terraform init --backend-config=backend.hcl を実行する
+- terraform planを実行する
+- terraform applyを実行する
+
+### secret.tfvarsの使ったplan/apply
+
+- terraform plan --var-file=secret.tfvars
+- terraform apply --var-file=secret.tfvars
+
+### aws-vaultの使い方
+
+- scoop install aws-vault
+- aws-vault add k2works-poc-202402
+- aws-vault ls
+- aws-vault exec k2works-poc-202402 -- aws s3 ls 
+- ~/.aws/config
+[profile k2works-poc-202402]
+credential_process=aws-vault exec k2works-poc-202402 --json --prompt=wincredui
+- aws-vault exec k2works-poc-202402 -- terraform apply
+
+### AWS CLIで環境変数を使ってプロファイルを設定する
+
+- $env:AWS_PROFILE="k2works-poc-202402" or export AWS_PROFILE=k2works-poc-202402
+- aws s3 ls
+- terraform init -backend-config="backend.hcl"
+
+### 1Gから2Gに移行する
+
+- 2G用のs3バケットを作成するステータス管理はローカルで行うこと
+- 2Gの環境を構築する
+- 1G用のs3バケットを削除するバックエンドがs3の場合はterraform init --backend-config=backend.hcl -migrate-state でバックエンドをローカルに変更すること
+- 1Gのs3バケットを空にする
+- 1Gのterraform destroyを実行する
+
+### 環境廃棄の手順
+
+- live/stage内のリソースを terraform destroy で削除する
+- live/prod内のリソースを terraform destroy で削除する
+- ステータス管理用のs3バケットを空にする
+- ステータス管理用のs3バケットを terraform destroy で削除する
+
+
+### 参照
+
+- [Terraform: Up & Running Code](https://github.com/brikis98/terraform-up-and-running-code/tree/master)
+- [aws-icons-for-plantuml](https://github.com/awslabs/aws-icons-for-plantuml/tree/main)
+- [PlantUMLでできるだけきれいなAWS構成図を描く方法](https://qiita.com/sakai00kou/items/18e389fc85a8af59d9e0)
+- [aws-vault](https://github.com/99designs/aws-vault#installing)
+- [aws-vaultの使い方と仕組み](https://qiita.com/takuzo8679/items/6727f46b0aaf6df0a864#%E5%BE%93%E6%9D%A5%E9%80%9A%E3%82%8A%E3%81%AE%E3%82%B3%E3%83%9E%E3%83%B3%E3%83%89%E5%BD%A2%E5%BC%8F%E3%82%92%E5%8F%AF%E8%83%BD%E3%81%AB%E3%81%99%E3%82%8B%E6%96%B9%E6%B3%95)
+- [aws-vault を使って AWS のアクセスキーを暗号化して扱おう](https://blog.microcms.io/aws-vault-introduction/)
+- [GitHub ActionsをOIDCでAWS認証してTerraformを実行する](https://anikitech.com/github-actions-terraform-by-oidc/)
+- [Terraformでクレデンシャルを読み込む方法あれこれ](https://qiita.com/Hikosaburou/items/1d3765d85d5398e3763f)
+- [AWS Vaultで端末内のAWSアクセスキー平文保存をやめてみた](https://dev.classmethod.jp/articles/aws-vault/)
+- [aws-vaultでcliとterraformをいい感じにしてみる](https://dev.classmethod.jp/articles/awsvault_config/)
+
 `;
 
 const usecase = `
@@ -189,5 +269,5 @@ e01 |o..o{ e03
 @enduml
 `;
 
-const mode = "APP"; // "UI" or "API" or "DOC"
+const mode = "DOC"; // "UI" or "API" or "DOC"
 dev.default({ contents, ui, uiModel, uiInteraction, usecase, uml, erd, mode });
