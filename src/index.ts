@@ -11,8 +11,8 @@ const contents = `
 - [x] モジュールで再利用可能なインフラを作る
 - [x] Terraformを使うためのヒントとコツ
 - [x] シークレットを管理する
-- [ ] 本番レベルのTerraformコード
-- [ ] Terraformのコードをテストする
+- [x] 本番レベルのTerraformコード
+- [x] Terraformのコードをテストする
 
 ### AWSアカウントのセットアップ
 
