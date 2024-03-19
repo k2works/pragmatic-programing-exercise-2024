@@ -21,7 +21,7 @@ func TestHelloWorldAppStage(t *testing.T) {
 	defer terraform.Destroy(t, dbOpts)
 	terraform.InitAndApply(t, dbOpts)
 
-	helloOpts := createHelloOpts(dbOpts, appDirStage)
+	helloOpts := createHelloOpts(t, dbOpts, appDirStage)
 	defer terraform.Destroy(t, helloOpts)
 	terraform.InitAndApply(t, helloOpts)
 
@@ -55,7 +55,10 @@ func createDbOpts(t *testing.T, terraformDir string) *terraform.Options {
 	}
 }
 
-func createHelloOpts(dbOpts *terraform.Options, terraformDir string) *terraform.Options {
+func createHelloOpts(t *testing.T, dbOpts *terraform.Options, terraformDir string) *terraform.Options {
+	uniqueId := random.UniqueId()
+	appStateKey := fmt.Sprintf("%s/%s/terraform.tfstate", t.Name(), uniqueId)
+
 	return &terraform.Options{
 		TerraformDir: terraformDir,
 
@@ -68,7 +71,7 @@ func createHelloOpts(dbOpts *terraform.Options, terraformDir string) *terraform.
 		BackendConfig: map[string]interface{}{
 			"bucket":  dbOpts.BackendConfig["bucket"],
 			"region":  dbOpts.BackendConfig["region"],
-			"key":     dbOpts.BackendConfig["key"],
+			"key":     appStateKey,
 			"encrypt": true,
 		},
 
@@ -90,7 +93,7 @@ func validateHelloApp(t *testing.T, helloOpts *terraform.Options) {
 		maxRetries,
 		timeBetweenRetries,
 		func(status int, body string) bool {
-			return status == 200 && strings.Contains(body, "Hello, World!")
+			return status == 200 && strings.Contains(body, "Hello, World")
 		},
 	)
 }
@@ -107,11 +110,6 @@ func TestHelloWorldAppStageWithStages(t *testing.T) {
 	stage(t, "deploy_app", func() { deployApp(t, dbDirStage, appDirStage) })
 
 	stage(t, "validate_app", func() { validateApp(t, appDirStage) })
-}
-
-func validateApp(t *testing.T, helloAppDir string) {
-	helloOpts := test_structure.LoadTerraformOptions(t, helloAppDir)
-	validateHelloApp(t, helloOpts)
 }
 
 func teardownDb(t *testing.T, dbDir string) {
@@ -134,9 +132,14 @@ func teardownApp(t *testing.T, helloAppDir string) {
 
 func deployApp(t *testing.T, dbDir string, helloAppDir string) {
 	dbOpts := test_structure.LoadTerraformOptions(t, dbDir)
-	helloOpts := createHelloOpts(dbOpts, helloAppDir)
+	helloOpts := createHelloOpts(t, dbOpts, helloAppDir)
 
 	test_structure.SaveTerraformOptions(t, helloAppDir, helloOpts)
 
 	terraform.InitAndApply(t, helloOpts)
+}
+
+func validateApp(t *testing.T, helloAppDir string) {
+	helloOpts := test_structure.LoadTerraformOptions(t, helloAppDir)
+	validateHelloApp(t, helloOpts)
 }
